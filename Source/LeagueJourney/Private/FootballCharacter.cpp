@@ -32,17 +32,12 @@ void AFootballCharacter::BeginPlay()
 			_Subsystem->AddMappingContext(BaseMappingContext, 5);
 		}
 	}
-
-	if (AFootballGameMode* FGM = Cast<AFootballGameMode>(UGameplayStatics::GetGameMode(GetWorld())))
-	{
-		SpawnedCamera = FGM->MainCamera;
-	}
+	
 }
 
 void AFootballCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-
 	
 
 }
@@ -61,11 +56,12 @@ void AFootballCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputC
 
 void AFootballCharacter::EnhancedMove(const FInputActionValue& Value)
 {
-	const FVector2D CurrentValue = Value.Get<FVector2D>();
-	if(CurrentValue.Length() > 0)
-	{
-
-	}
+	FVector2D CurrentValue = Value.Get<FVector2D>();
+	CurrentValue.Normalize();
+	FVector FinalValue = (SpawnedCamera != nullptr)?  Cast<AStadiumCamera>(SpawnedCamera)->Com_Camera->GetForwardVector() * CurrentValue.Y + Cast<AStadiumCamera>(SpawnedCamera)->Com_Camera->GetRightVector() * CurrentValue.X : CurrentPosition;
+	FinalValue.Normalize();
+	GEngine->AddOnScreenDebugMessage(-1, 1, FColor::Green, (SpawnedCamera != nullptr) ? (Cast<AStadiumCamera>(SpawnedCamera)->Com_Camera->GetForwardVector() * CurrentValue.Y).ToString() : "ffs");
+	AddMovementInput(FinalValue);
 }
 
 

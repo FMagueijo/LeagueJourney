@@ -25,7 +25,6 @@ AStadiumCamera::AStadiumCamera()
 void AStadiumCamera::BeginPlay()
 {
 	Super::BeginPlay();
-	SpawnedFootball = Cast<AFootballGameMode>(UGameplayStatics::GetGameMode(GetWorld()))->SpawnedFootball;
 	PC = UGameplayStatics::GetPlayerController(GetWorld(), 0);
 }
 

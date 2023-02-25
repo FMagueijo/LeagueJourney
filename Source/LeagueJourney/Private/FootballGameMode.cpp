@@ -18,7 +18,9 @@ void AFootballGameMode::BeginPlay()
 	Super::BeginPlay();
 
 
+	SpawnCamera();
 	SpawnFootball();
+
 	if(UFootballMatchInstance * matchInstance = Cast<UFootballMatchInstance>(GetGameInstance()))
 	{
 		teamHome = matchInstance->H_Team;
@@ -44,12 +46,15 @@ void AFootballGameMode::BeginPlay()
 	PC = UGameplayStatics::GetPlayerController(GetWorld(), 0);
 	PC->Possess(pawnElevenHome[pawnElevenHome.Num() - 1]);
 
-	SpawnCamera();
 }
 
 void AFootballGameMode::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
+	if(SpawnedFootball != nullptr)
+	{
+		GEngine->AddOnScreenDebugMessage(-1, 1, FColor::Yellow, "Yes it does");
+	}
 }
 
 
@@ -59,14 +64,14 @@ void AFootballGameMode::SpawnCamera()
 {
 	if(cameraClass)
 	{
-		FTransform local_Transform;
-		local_Transform.SetRotation(FQuat(FRotator(0, 180, 0)));
-		MainCamera = GetWorld()->SpawnActorDeferred<AStadiumCamera>(cameraClass, local_Transform);
-		if (MainCamera)
-		{
-			UGameplayStatics::FinishSpawningActor(MainCamera, local_Transform);
+		FTransform T_Camera;
 
-		}
+		T_Camera.SetRotation(FQuat(FRotator(0, 180, 0)));
+		T_Camera.SetLocation(FVector(0, 0, 0));
+		AStadiumCamera* NewCamera = GetWorld()->SpawnActorDeferred<AStadiumCamera>(cameraClass, T_Camera);
+		NewCamera->SpawnedFootball = SpawnedFootball;
+		NewCamera->FinishSpawning(T_Camera, false);
+		SpawnedCamera = NewCamera;
 	}
 }
 
@@ -83,7 +88,7 @@ void AFootballGameMode::SpawnCamera()
 
 			T_Football.SetRotation(FQuat(FRotator::ZeroRotator));
 			T_Football.SetLocation(FVector(0, 0, 50));
-			AActor* NewFootball = GetWorld()->SpawnActorDeferred<AFootball>(footballClass, T_Football);
+			AFootball* NewFootball = GetWorld()->SpawnActorDeferred<AFootball>(footballClass, T_Football);
 			NewFootball->FinishSpawning(T_Football, false);
 			SpawnedFootball = NewFootball;
 		}
@@ -103,6 +108,9 @@ void AFootballGameMode::SpawnCamera()
 				T_NewPawn.SetLocation(CurrentPosition);
 
 				AFootballCharacter* NewPawn = GetWorld()->SpawnActorDeferred<AFootballCharacter>(characterClass, T_NewPawn);
+
+				GEngine->AddOnScreenDebugMessage(-1, 150, FColor::Purple, SpawnedCamera->GetName());
+				NewPawn->SpawnedCamera = SpawnedCamera;
 
 				if (animinstanceDefault && animinstanceGoalkeeper)
 				{
@@ -138,6 +146,9 @@ void AFootballGameMode::SpawnCamera()
 						transPositionHome.SetLocation(_V);
 						AFootballCharacter* theNewchar = GetWorld()->SpawnActorDeferred<AFootballCharacter>(characterClass, transPositionHome);
 						theNewchar->CurrentPosition = _V;
+
+						GEngine->AddOnScreenDebugMessage(-1, 150, FColor::Purple, SpawnedCamera->GetName());
+						theNewchar->SpawnedCamera = SpawnedCamera;
 						(animinstanceDefault) ? theNewchar->GetMesh()->SetAnimClass(animinstanceDefault) : nullptr;
 						theNewchar->FinishSpawning(transPositionHome, false);
 						pawnElevenHome.Add(theNewchar);

@@ -39,9 +39,16 @@ protected:
 
 public:
 
+
+	//Football Properties
+	UPROPERTY(BlueprintReadOnly, Category = "Camera Properties")
+	AStadiumCamera* SpawnedCamera;
+
+
+
 	//Football Properties
 	UPROPERTY(BlueprintReadOnly, Category = "Football Properties")
-	AActor* SpawnedFootball;
+	AFootball* SpawnedFootball;
 
 
 
