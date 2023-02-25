@@ -54,14 +54,9 @@ public:
 	UInputMappingContext* BaseMappingContext;
 
 	void EnhancedMove(const FInputActionValue& Value);
+	void EnhancedIdk();
 
-	FVector moveAxisX;
-	FVector moveAxisY;
 	
-	AActor* BallActor;
-
-	int NextMove = NULL; // 0= BTPass 1= BTShoot 2= BTCross
-
 	float Power = 0;
 
 	UPROPERTY(BlueprintReadWrite, Category = "Boolean Override")
