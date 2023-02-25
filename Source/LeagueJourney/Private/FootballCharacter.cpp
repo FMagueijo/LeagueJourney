@@ -3,6 +3,7 @@
 
 #include "FootballCharacter.h"
 
+#include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "FootballerController.h"
 #include "Football.h"
@@ -64,18 +65,10 @@ void AFootballCharacter::Tick(float DeltaTime)
 void AFootballCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
-	PlayerInputComponent->BindAxis("MoveFW");
-	PlayerInputComponent->BindAxis("MoveRG");
-	PlayerInputComponent->BindAxis("Sprint");
-	PlayerInputComponent->BindAction("Tackle/Shot", IE_Pressed, this, &AFootballCharacter::Tackle);
-	if(hasBall)
+	
+	if(UEnhancedInputComponent* EnhancedInputComponent = CastChecked<UEnhancedInputComponent>(PlayerInputComponent))
 	{
-		
-	}
-	else
-	{
-		///
-		//PlayerInputComponent->BindAction("Tackle/Shot", IE_Released, this, &AFootballCharacter::decideNextMove);
+		EnhancedInputComponent->BindAction(MoveAction, ETriggerEvent::Triggered, this, &AFootballCharacter::EnhancedMove);
 	}
 	
 
@@ -92,11 +85,6 @@ void AFootballCharacter::EnhancedMove(const FInputActionValue& Value)
 	}
 }
 
-
-void AFootballCharacter::Move()
-{
-	
-}
 
 void AFootballCharacter::Move(FVector Where)
 {
@@ -137,31 +125,3 @@ void AFootballCharacter::OnSsphereOverlapBegin(UPrimitiveComponent* OverlappedCo
 
 	}
 }
-
-void AFootballCharacter::decideNextMove()
-{
-
-	switch (NextMove)
-	{
-	case 0:
-		break;
-	case 1:
-		
-		break;
-	case 2:
-		break;
-	}
-}
-
-void AFootballCharacter::Tackle()
-{
-	if(!isRetarded)
-	{
-		isTackling = true;
-		isRetarded = true;
-	}
-	
-}
-
-
-
