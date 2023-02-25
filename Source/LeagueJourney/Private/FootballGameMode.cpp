@@ -17,6 +17,8 @@ void AFootballGameMode::BeginPlay()
 {
 	Super::BeginPlay();
 
+
+	SpawnFootball();
 	if(UFootballMatchInstance * matchInstance = Cast<UFootballMatchInstance>(GetGameInstance()))
 	{
 		teamHome = matchInstance->H_Team;
@@ -41,7 +43,8 @@ void AFootballGameMode::BeginPlay()
 
 	PC = UGameplayStatics::GetPlayerController(GetWorld(), 0);
 	PC->Possess(pawnElevenHome[pawnElevenHome.Num() - 1]);
-	
+
+	SpawnCamera();
 }
 
 void AFootballGameMode::Tick(float DeltaSeconds)
@@ -51,23 +54,39 @@ void AFootballGameMode::Tick(float DeltaSeconds)
 
 
 
-bool AFootballGameMode::SpawnCamera()
-{
-	FTransform local_Transform;
-	MainCamera = GetWorld()->SpawnActorDeferred<AStadiumCamera>(cameraClass, local_Transform);
-	if (MainCamera)
-	{
-		UGameplayStatics::FinishSpawningActor(MainCamera, local_Transform);
-		return true;
-	}
-	return false;
-}
 
+void AFootballGameMode::SpawnCamera()
+{
+	if(cameraClass)
+	{
+		FTransform local_Transform;
+		MainCamera = GetWorld()->SpawnActorDeferred<AStadiumCamera>(cameraClass, local_Transform);
+		if (MainCamera)
+		{
+			UGameplayStatics::FinishSpawningActor(MainCamera, local_Transform);
+
+		}
+	}
+}
 
 
 
 #pragma region Odd Methods
 	//PRIVATE FUNCTIONS
+
+	void AFootballGameMode::SpawnFootball()
+	{
+		if(footballClass)
+		{
+			FTransform T_Football;
+
+			T_Football.SetRotation(FQuat(FRotator::ZeroRotator));
+			T_Football.SetLocation(FVector(0, 0, 50));
+			AActor* NewFootball = GetWorld()->SpawnActorDeferred<AFootball>(footballClass, T_Football);
+			NewFootball->FinishSpawning(T_Football, false);
+			SpawnedFootball = NewFootball;
+		}
+	}
 
 	void AFootballGameMode::SpawnPawn(FFootballer FootballerStruct, bool isHome)
 	{

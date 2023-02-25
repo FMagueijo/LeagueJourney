@@ -5,6 +5,7 @@
 
 #include "GameFramework/Character.h"
 #include "FootballerController.h"
+#include "FootballGameMode.h"
 #include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetMathLibrary.h"
 
@@ -24,6 +25,8 @@ AStadiumCamera::AStadiumCamera()
 void AStadiumCamera::BeginPlay()
 {
 	Super::BeginPlay();
+	SpawnedFootball = Cast<AFootballGameMode>(UGameplayStatics::GetGameMode(GetWorld()))->SpawnedFootball;
+	PC = UGameplayStatics::GetPlayerController(GetWorld(), 0);
 }
 
 // Called every frame
@@ -31,43 +34,33 @@ void AStadiumCamera::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	if(ObjectsToFollow.Num() > 0)
+	//CameraCurrentPosition = (PC->GetPawn()->GetActorLocation() + SpawnedFootball->GetActorLocation()) / 2;
+	CameraCurrentPosition = PC->GetPawn()->GetActorLocation();
+	CameraCurrentPosition.Z = 0;
+	
+	FRotator CameraFinalRotation = UKismetMathLibrary::FindLookAtRotation(Com_Camera->GetComponentLocation(), CameraCurrentPosition);
+	Com_Camera->SetWorldRotation(CameraFinalRotation);
+
+	CameraCurrentPosition.Y = FMath::Clamp(CameraCurrentPosition.Y, minmaxYposition * -1, minmaxYposition);
+
+	this->SetActorLocation(CameraCurrentPosition);
+
+	/*if (isOnScreen((PC->GetPawn()) ? PC->GetPawn() : nullptr) && isOnScreen(SpawnedFootball))
 	{
-		FVector CameraFinalPosition;
-		for(AActor* ator : ObjectsToFollow)
-		{
-			CameraFinalPosition += ator->GetActorLocation();
-		}
-
-		CameraFinalPosition /= ObjectsToFollow.Num();
-		CameraFinalPosition.Z = 0;
-
-		FRotator CameraFinalRotation = UKismetMathLibrary::FindLookAtRotation(Com_Camera->GetComponentLocation(), CameraFinalPosition);
-		Com_Camera->SetWorldRotation(CameraFinalRotation);
-		
-		CameraFinalPosition.Y = FMath::Clamp(CameraFinalPosition.Y, minmaxYposition*-1, minmaxYposition);
-		
-		this->SetActorLocation(CameraFinalPosition);
-		for(AActor* ator : ObjectsToFollow)
-		{
-			if(isOnScreen(ator))
-			{
-				(Com_SpringArm->TargetArmLength > 1300) ? Com_SpringArm->TargetArmLength -= 1000 * DeltaTime : NULL;
-			}
-			else
-			{
-				Com_SpringArm->TargetArmLength += 100 * DeltaTime;
-			}
-		}
-
-		Com_SpringArm->TargetArmLength = FMath::Clamp(Com_SpringArm->TargetArmLength, 1300, 15000);
+		(Com_SpringArm->TargetArmLength > 1300) ? Com_SpringArm->TargetArmLength -= 10 * DeltaTime : NULL;
 	}
+	else
+	{
+
+		Com_SpringArm->TargetArmLength += 1000 * DeltaTime;
+	}*/
+
+	Com_SpringArm->TargetArmLength = FMath::Clamp(Com_SpringArm->TargetArmLength, 1300, 15000);
 	
 }
 
 bool AStadiumCamera::isOnScreen(AActor* WhichActor)
 {
-	APlayerController* PC = UGameplayStatics::GetPlayerController(GetWorld(), 0);
 	FVector2D ScreenLocation;
 	PC->ProjectWorldLocationToScreen(WhichActor->GetActorLocation(), ScreenLocation);
 
@@ -78,5 +71,5 @@ bool AStadiumCamera::isOnScreen(AActor* WhichActor)
 	int32 ScreenX = (int32)ScreenLocation.X;
 	int32 ScreenY = (int32)ScreenLocation.Y;
 
-	return ScreenX >= 0 && ScreenY >= 0 && ScreenX < ScreenWidth&& ScreenY < ScreenHeight;
+	return ScreenX >= 1 && ScreenY >= 1 && ScreenX < ScreenWidth&& ScreenY < ScreenHeight;
 }

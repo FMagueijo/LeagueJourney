@@ -12,7 +12,7 @@ UCLASS()
 class LEAGUEJOURNEY_API AStadiumCamera : public AActor
 {
 	GENERATED_BODY()
-	
+
 public:	
 	// Sets default values for this actor's properties
 	AStadiumCamera();
@@ -37,7 +37,9 @@ public:
 
 #pragma region Properties
 
-	TArray<AActor*> ObjectsToFollow;
+	APlayerController* PC;
+	FVector CameraCurrentPosition;
+	AActor* SpawnedFootball;
 	float minmaxYposition = 3000;
 
 #pragma endregion

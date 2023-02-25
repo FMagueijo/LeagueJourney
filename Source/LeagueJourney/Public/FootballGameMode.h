@@ -33,11 +33,20 @@ protected:
 	//Functions
 	void SpawnPawn(FFootballer FootballerStruct, bool isHome);
 
-	bool SpawnCamera();
+	void SpawnCamera();
+
+	void SpawnFootball();
 
 public:
 
+	//Football Properties
+	UPROPERTY(BlueprintReadOnly, Category = "Football Properties")
+	AActor* SpawnedFootball;
+
+
+
 	//Player Properties
+	UPROPERTY(BlueprintReadOnly, Category = "Player Properties")
 	APlayerController* PC;
 
 
@@ -45,10 +54,10 @@ public:
 	//Teams Properties
 
 	UPROPERTY(BlueprintReadOnly, Category = "Teams Properties")
-	bool teamHasBallHome = false;
+	bool bTeamHasBallHome = false;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Teams Properties")
-	bool teamHasBallAway = false;
+	bool bTeamHasBallAway = false;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Teams Properties")
 	float attackPercentageHome = 0;
