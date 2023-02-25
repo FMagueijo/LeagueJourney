@@ -84,24 +84,7 @@ void AFootballCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputC
 
 void AFootballCharacter::Move()
 {
-
-	FVector VectorIncial0, VectorIncial1, VectorFinal;
-
-	VectorIncial0 = Cast<AFootballerController>(PC)->BrodCamera->GetActorForwardVector();
-	VectorIncial0.Z = 0;
-	VectorIncial0.Normalize();
-
-	VectorIncial1 = Cast<AFootballerController>(PC)->BrodCamera->GetActorRightVector();
-	VectorIncial1.Z = 0;
-	VectorIncial1.Normalize();
-
-	VectorFinal += VectorIncial0 * GetInputAxisValue("MoveFW") + VectorIncial1 * GetInputAxisValue("MoveRG");
-
-	GetCharacterMovement()->MaxWalkSpeed = (VectorFinal.Length() > .7) ? 200 + (GetInputAxisValue("Sprint") * (stats.Pace / 20 * 400)) : 200;
-	GetCharacterMovement()->RotationRate = (VectorFinal.Length() > .7) ? FRotator(0, 180 + GetInputAxisValue("Sprint") * 180, 0) : FRotator::ZeroRotator;
-
-	VectorFinal.Normalize();
-	AddMovementInput(VectorFinal);
+	
 }
 
 void AFootballCharacter::Move(FVector Where)
