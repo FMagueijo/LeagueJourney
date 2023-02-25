@@ -11,6 +11,11 @@
 #include "GameFramework/Character.h"
 #include "FootballCharacter.generated.h"
 
+class UEnhancedInputLocalPlayerSubsystem;
+struct FInputActionValue;
+class UInputMappingContext;
+class UInputAction;
+
 UCLASS()
 class LEAGUEJOURNEY_API AFootballCharacter : public ACharacter
 {
@@ -23,7 +28,7 @@ public:
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
-
+	
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
@@ -31,7 +36,24 @@ public:
 	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
+	//
+	APlayerController* PC;
+	UEnhancedInputLocalPlayerSubsystem* SubSystem;
 
+
+
+	//Camera Properties
+	AActor* SpawnedCamera;
+
+	//Input Actions
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category="Input Actions")
+	UInputAction* MoveAction;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input Actions")
+	UInputMappingContext* BaseMappingContext;
+
+	void EnhancedMove(const FInputActionValue& Value);
 
 	FVector moveAxisX;
 	FVector moveAxisY;
@@ -68,9 +90,7 @@ public:
 
 	UPROPERTY(BlueprintReadWrite, Category = "Character Properties")
 	AStadiumCamera* main_cam;
-
-	UPROPERTY(BlueprintReadWrite, Category = "Character Properties")
-	APlayerController* PC;
+	
 
 	UPROPERTY(BlueprintReadWrite, Category = "Character Animation Properties")
 	UCharacterAnimationInstance* anim_Class;

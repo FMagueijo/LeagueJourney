@@ -60,6 +60,7 @@ void AFootballGameMode::SpawnCamera()
 	if(cameraClass)
 	{
 		FTransform local_Transform;
+		local_Transform.SetRotation(FQuat(FRotator(0, 180, 0)));
 		MainCamera = GetWorld()->SpawnActorDeferred<AStadiumCamera>(cameraClass, local_Transform);
 		if (MainCamera)
 		{
