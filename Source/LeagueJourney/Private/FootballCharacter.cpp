@@ -2,6 +2,8 @@
 
 
 #include "FootballCharacter.h"
+
+#include "EnhancedInputSubsystems.h"
 #include "FootballerController.h"
 #include "Football.h"
 #include "Kismet/GameplayStatics.h"
@@ -20,17 +22,15 @@ AFootballCharacter::AFootballCharacter()
 void AFootballCharacter::BeginPlay()
 {
 	Super::BeginPlay();
-	if(DebugStringPosition != "")
+	
+	if(APlayerController* _PC = UGameplayStatics::GetPlayerController(GetWorld(), 0))
 	{
-		stats.Position = DebugStringPosition;
+		PC = _PC;
+		if (UEnhancedInputLocalPlayerSubsystem* _Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PC->GetLocalPlayer()))
+		{
+			SubSystem->AddMappingContext(BaseMappingContext, 0);
+		}
 	}
-	
-	//Acelaração Maxima
-	/*GetCharacterMovement()->MaxAcceleration = stats.Acceleration * 20;
-	PC = (Cast<AFootballerController>(GetController()))? Cast<AFootballerController>(GetController()) : nullptr;
-	BallActor = UGameplayStatics::GetActorOfClass(GetWorld(), AFootball::StaticClass());*/
-	
-	
 }
 
 // Called every frame
@@ -79,6 +79,17 @@ void AFootballCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputC
 	}
 	
 
+}
+
+void AFootballCharacter::EnhancedMove(const FInputActionValue& Value)
+{
+	const FVector2D CurrentValue = Value.Get<FVector2D>();
+	if(CurrentValue.Length() > 0)
+	{
+		FVector CurrentMove = SpawnedCamera->GetActorForwardVector() * CurrentValue.Y + SpawnedCamera->GetActorRightVector() * CurrentValue.X;
+		CurrentMove.Z = 0;
+		AddMovementInput(CurrentMove);
+	}
 }
 
 
