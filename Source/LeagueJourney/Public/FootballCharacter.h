@@ -11,6 +11,7 @@
 #include "GameFramework/Character.h"
 #include "FootballCharacter.generated.h"
 
+class AFootball;
 class UEnhancedInputLocalPlayerSubsystem;
 struct FInputActionValue;
 class UInputMappingContext;
@@ -106,12 +107,21 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category = "Animation Properties")
 	UAnimMontage* MontageTackle;
 
+	UPROPERTY(EditDefaultsOnly, Category = "Animation Properties")
+	UAnimMontage* MontageShot;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Animation Properties")
+	UAnimMontage* MontagePass;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Animation Properties")
+	UAnimMontage* MontagePossession;
+
 
 
 	//Player Properties
 
 	UPROPERTY(BlueprintReadOnly, Category = "Player Properties")
-	AActor* KnownBall = nullptr;
+	AFootball* KnownBall = nullptr;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Player Properties")
 	bool bHasBall = false;

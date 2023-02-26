@@ -106,6 +106,9 @@ void AFootballCharacter::EnhancedTackle(const FInputActionValue& Value)
 
 	if(bIsCharging && !GetMesh()->GetAnimInstance()->IsAnyMontagePlaying())
 	{
+		FVector PassVector = GetActorLocation() + GetActorForwardVector() * (5000 * ChargePercentage);
+		DrawDebugSphere(GetWorld(), PassVector, 100, 16, FColor::Red);
+		DrawDebugLine(GetWorld(), GetActorLocation(), PassVector, FColor::Red, false,-1, 0, 10);
 		if (ChargePercentage >= 1 || !Value.Get<bool>())
 		{
 			bIsCharging = false;
@@ -126,13 +129,13 @@ void AFootballCharacter::EnhancedSprint(const FInputActionValue& Value)
 
 void AFootballCharacter::Shoot()
 {
-	if (KnownBall)
+	if (KnownBall && ChargePercentage > 0)
 	{
 		Cast<AFootball>(KnownBall)->DaddyPawn = nullptr;
 		Cast<AFootball>(KnownBall)->bIsPosessed = false;
 		Cast<AFootball>(KnownBall)->Com_Collision->SetSimulatePhysics(true);
-		FVector ShootVector = GetActorForwardVector() * (700 + ( ChargePercentage * (stats.Shooting / 20 * 2500)));
-		ShootVector.Z = 500 * ChargePercentage;
+		FVector ShootVector = GetActorForwardVector() * (700 + ( ChargePercentage * (stats.Shooting / 20 * 1800)));
+		ShootVector.Z = (350 * ChargePercentage);
 		Cast<AFootball>(KnownBall)->Com_Collision->AddImpulse(ShootVector, EName::None, false);
 		bHasBall = false;
 	}
@@ -155,7 +158,7 @@ void AFootballCharacter::OnDetectionOverlapBegin(UPrimitiveComponent* Overlapped
 	if(Cast<AFootball>(OtherActor))
 	{
 		GEngine->AddOnScreenDebugMessage(-1, 5, FColor::Red, "Les go");
-		KnownBall = OtherActor;
+		KnownBall = Cast<AFootball>(OtherActor);
 	}
 
 }

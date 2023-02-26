@@ -3,7 +3,7 @@
 
 #include "Football.h"
 #include "FootballCharacter.h"
-#include "PhysicsEngine/PhysicsConstraintTemplate.h"
+#include "Kismet/GameplayStatics.h"
 
 #include "PhysicsField/PhysicsFieldComponent.h"
 
@@ -36,6 +36,11 @@ void AFootball::Tick(float DeltaTime)
 		targetLocation.Z = 10;
 		DrawDebugSphere(GetWorld(), targetLocation, 50, 16, FColor::Red);
 		SetActorLocation(targetLocation);
+
+		if (UGameplayStatics::GetPlayerController(GetWorld(), 0)->GetPawn() != DaddyPawn)
+		{
+			UGameplayStatics::GetPlayerController(GetWorld(), 0)->Possess(DaddyPawn);
+		}
 	}
 	
 	
