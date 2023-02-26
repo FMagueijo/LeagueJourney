@@ -37,13 +37,24 @@ public:
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
 	//
+
 	APlayerController* PC;
 	UEnhancedInputLocalPlayerSubsystem* SubSystem;
 
 
 
 	//Camera Properties
+
 	AActor* SpawnedCamera;
+
+
+
+	//Input
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
+	UInputMappingContext* BaseMappingContext;
+
+
 
 	//Input Actions
 
@@ -51,14 +62,49 @@ public:
 	UInputAction* MoveAction;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Input Actions")
+	UInputAction* TackleAction;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Input Actions")
 	UInputAction* SprintAction;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
-	UInputMappingContext* BaseMappingContext;
 
+
+	//Input Functions
+
+	UFUNCTION()
+	void EnhancedCharge(const FInputActionValue& Value);
+
+	UFUNCTION()
 	void EnhancedMove(const FInputActionValue& Value);
+
+	UFUNCTION()
+	void EnhancedTackle(const FInputActionValue& Value);
+
+	UFUNCTION()
+	void EnhancedShot(const FInputActionValue& Value);
+
+	UFUNCTION()
 	void EnhancedSprint(const FInputActionValue& Value);
+
+
+
+	//Input Properties
+
+	UPROPERTY(BlueprintReadOnly, Category = "Input Properties")
+	bool bIsCharging = false;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Input Properties")
 	float SprintPercentage = 0.f;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Input Properties")
+	float ChargePercentage = 0.f;
+
+
+
+	UPROPERTY(EditDefaultsOnly, Category = "Animation Properties")
+	UAnimMontage* MontageTackle;
+
+
 
 	
 	float Power = 0;
@@ -97,20 +143,10 @@ public:
 	UPROPERTY(BlueprintReadWrite, Category = "Character Properties")
 	FVector CurrentPosition;
 
-	UPROPERTY(BlueprintReadWrite, Category = "Character Properties")
-	TArray<UAnimInstance*> Animacoes;
 
 	UPROPERTY(EditAnywhere, Category = "Debug Properties")
 	FString DebugStringPosition;
-
-	void decideNextMove();
-	void Tackle();
-	void Shoot();
-	void Pass();
-	void Receive();
-	void Move();
-	void Move(FVector Where);
-
+	
 
 #pragma region Components Related
 

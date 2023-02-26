@@ -38,10 +38,12 @@ void AFootballCharacter::BeginPlay()
 void AFootballCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-	if(GetController()->GetPawn() == this)
+
+	if(bIsCharging)
 	{
-		GEngine->AddOnScreenDebugMessage(-1, .5, FColor::Red, FString::SanitizeFloat(stats.Pace));
+		ChargePercentage = FMath::Clamp(ChargePercentage += .45 * DeltaTime, 0.f, 1.f);
 	}
+
 }
 
 void AFootballCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
@@ -52,10 +54,25 @@ void AFootballCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputC
 	{
 		enhancedInputComponent->BindAction(MoveAction, ETriggerEvent::Triggered, this, &AFootballCharacter::EnhancedMove);
 		enhancedInputComponent->BindAction(SprintAction, ETriggerEvent::Triggered, this, &AFootballCharacter::EnhancedSprint);
+
 		
+		
+		//Charging Inputs
+		enhancedInputComponent->BindAction(TackleAction, ETriggerEvent::Started, this, &AFootballCharacter::EnhancedCharge);
+		//Charging Input Complete
+		enhancedInputComponent->BindAction(TackleAction, ETriggerEvent::Triggered, this, &AFootballCharacter::EnhancedTackle);
 	}
 	
 
+}
+
+void AFootballCharacter::EnhancedCharge(const FInputActionValue& Value)
+{
+	if(!bIsCharging && !GetMesh()->GetAnimInstance()->IsAnyMontagePlaying())
+	{
+		bIsCharging = Value.Get<bool>();
+		GEngine->AddOnScreenDebugMessage(-1, 10, FColor::Red, "Charging");
+	}
 }
 
 void AFootballCharacter::EnhancedMove(const FInputActionValue& Value)
@@ -73,10 +90,29 @@ void AFootballCharacter::EnhancedMove(const FInputActionValue& Value)
 	AddMovementInput(FinalValue);
 }
 
+void AFootballCharacter::EnhancedTackle(const FInputActionValue& Value)
+{
+	GEngine->AddOnScreenDebugMessage(-1, 1, FColor::Red, "About to shoot -> " + FString::SanitizeFloat(ChargePercentage));
+
+	if(bIsCharging && !GetMesh()->GetAnimInstance()->IsAnyMontagePlaying())
+	{
+		if (ChargePercentage >= 1 || !Value.Get<bool>())
+		{
+			bIsCharging = false;
+			PlayAnimMontage(MontageTackle, 1, EName::None);
+			ChargePercentage = 0;
+		}
+	}
+}
+
+void AFootballCharacter::EnhancedShot(const FInputActionValue& Value)
+{
+
+}
+
 void AFootballCharacter::EnhancedSprint(const FInputActionValue& Value)
 {
-	float CurrentValue = Value.Get<float>();
-	SprintPercentage = CurrentValue;
+	SprintPercentage = Value.Get<float>();
 }
 
 
