@@ -50,11 +50,15 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category="Input Actions")
 	UInputAction* MoveAction;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input Actions")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Input Actions")
+	UInputAction* SprintAction;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
 	UInputMappingContext* BaseMappingContext;
 
 	void EnhancedMove(const FInputActionValue& Value);
-	void EnhancedIdk();
+	void EnhancedSprint(const FInputActionValue& Value);
+	float SprintPercentage = 0.f;
 
 	
 	float Power = 0;
