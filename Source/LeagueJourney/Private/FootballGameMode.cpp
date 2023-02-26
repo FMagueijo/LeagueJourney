@@ -111,6 +111,8 @@ void AFootballGameMode::SpawnCamera()
 				
 				NewPawn->SpawnedCamera = SpawnedCamera;
 				NewPawn->stats = FootballerStruct;
+				NewPawn->CurrentPosition = CurrentPosition;
+				NewPawn->bPlaysAtHome = isHome;
 
 				if (animinstanceDefault && animinstanceGoalkeeper)
 				{

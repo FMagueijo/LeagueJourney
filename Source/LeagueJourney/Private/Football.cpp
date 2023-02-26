@@ -3,6 +3,7 @@
 
 #include "Football.h"
 #include "FootballCharacter.h"
+#include "FootballGameMode.h"
 #include "Kismet/GameplayStatics.h"
 
 #include "PhysicsField/PhysicsFieldComponent.h"
@@ -37,12 +38,28 @@ void AFootball::Tick(float DeltaTime)
 		DrawDebugSphere(GetWorld(), targetLocation, 50, 16, FColor::Red);
 		SetActorLocation(targetLocation);
 
+		if(Cast<AFootballCharacter>(DaddyPawn)->bPlaysAtHome)
+		{
+			Cast<AFootballGameMode>(UGameplayStatics::GetGameMode(GetWorld()))->bTeamHasBallHome = true;
+			Cast<AFootballGameMode>(UGameplayStatics::GetGameMode(GetWorld()))->bTeamHasBallAway = false;
+		}
+		else
+		{
+			Cast<AFootballGameMode>(UGameplayStatics::GetGameMode(GetWorld()))->bTeamHasBallHome = false;
+			Cast<AFootballGameMode>(UGameplayStatics::GetGameMode(GetWorld()))->bTeamHasBallAway = true;
+		}
+
+
 		if (UGameplayStatics::GetPlayerController(GetWorld(), 0)->GetPawn() != DaddyPawn)
 		{
 			UGameplayStatics::GetPlayerController(GetWorld(), 0)->Possess(DaddyPawn);
 		}
 	}
-	
+	else
+	{
+		Cast<AFootballGameMode>(UGameplayStatics::GetGameMode(GetWorld()))->bTeamHasBallHome = false;
+		Cast<AFootballGameMode>(UGameplayStatics::GetGameMode(GetWorld()))->bTeamHasBallAway = false;
+	}
 	
 }
 

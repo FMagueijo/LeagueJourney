@@ -52,6 +52,11 @@ void AFootballCharacter::Tick(float DeltaTime)
 
 	if(bIsCharging && !GetMesh()->GetAnimInstance()->IsAnyMontagePlaying())
 	{
+		FVector PassVector = GetActorLocation() + GetActorForwardVector() * (5000 * ChargePercentage);
+		
+		DrawDebugSphere(GetWorld(), PassVector, 100, 16, FColor::Red);
+		DrawDebugLine(GetWorld(), GetActorLocation(), PassVector, FColor::Red, false, -1, 0, 10);
+
 		ChargePercentage = FMath::Clamp(ChargePercentage += 1 * DeltaTime, 0.f, 1.f);
 	}
 
@@ -70,16 +75,56 @@ void AFootballCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputC
 		
 		//Charging Inputs
 		enhancedInputComponent->BindAction(TackleAction, ETriggerEvent::Started, this, &AFootballCharacter::EnhancedCharge);
+		enhancedInputComponent->BindAction(PassAction, ETriggerEvent::Started, this, &AFootballCharacter::EnhancedCharge);
 		//Charging Input Complete
-		enhancedInputComponent->BindAction(TackleAction, ETriggerEvent::Triggered, this, &AFootballCharacter::EnhancedTackle);
+		enhancedInputComponent->BindAction(TackleAction, ETriggerEvent::Triggered, this, &AFootballCharacter::EnhancedShot);
+		enhancedInputComponent->BindAction(PassAction, ETriggerEvent::Triggered, this, &AFootballCharacter::EnhancedPass);
 	}
 	
 
 }
 
+
+void AFootballCharacter::EnhancedTackle(const FInputActionValue& Value)
+{
+
+	
+}
+
+void AFootballCharacter::EnhancedPass(const FInputActionValue& Value)
+{
+	if (bIsCharging && !GetMesh()->GetAnimInstance()->IsAnyMontagePlaying())
+	{
+		if (ChargePercentage >= 1 || !Value.Get<bool>())
+		{
+			bIsCharging = false;
+			PlayAnimMontage(MontagePass, 1, EName::None);
+			ChargePercentage = 0;
+		}
+	}
+}
+
+void AFootballCharacter::EnhancedShot(const FInputActionValue& Value)
+{
+	if (bIsCharging && !GetMesh()->GetAnimInstance()->IsAnyMontagePlaying())
+	{
+		if (ChargePercentage >= 1 || !Value.Get<bool>())
+		{
+			bIsCharging = false;
+			PlayAnimMontage(MontageShot, 1, EName::None);
+		}
+	}
+}
+
+void AFootballCharacter::EnhancedSprint(const FInputActionValue& Value)
+{
+	SprintPercentage = Value.Get<float>();
+}
+
+
 void AFootballCharacter::EnhancedCharge(const FInputActionValue& Value)
 {
-	if(!bIsCharging && !GetMesh()->GetAnimInstance()->IsAnyMontagePlaying())
+	if (!bIsCharging && !GetMesh()->GetAnimInstance()->IsAnyMontagePlaying())
 	{
 		bIsCharging = Value.Get<bool>();
 		GEngine->AddOnScreenDebugMessage(-1, 10, FColor::Red, "Charging");
@@ -90,42 +135,20 @@ void AFootballCharacter::EnhancedMove(const FInputActionValue& Value)
 {
 	FVector2D CurrentValue = Value.Get<FVector2D>();
 	CurrentValue.Normalize();
-	FVector FinalValue = (SpawnedCamera != nullptr)?  Cast<AStadiumCamera>(SpawnedCamera)->Com_Camera->GetForwardVector() * CurrentValue.Y + Cast<AStadiumCamera>(SpawnedCamera)->Com_Camera->GetRightVector() * CurrentValue.X : CurrentPosition;
+	FVector FinalValue = (SpawnedCamera != nullptr) ? Cast<AStadiumCamera>(SpawnedCamera)->Com_Camera->GetForwardVector() * CurrentValue.Y + Cast<AStadiumCamera>(SpawnedCamera)->Com_Camera->GetRightVector() * CurrentValue.X : CurrentPosition;
 	FinalValue.Z = 0;
-	
-	GetCharacterMovement()->MaxWalkSpeed = (FinalValue.Length() > .8) ? (200 + stats.Pace/20 * 100) + (SprintPercentage * (stats.Pace / 20 * 200)) : 200;
-	GetCharacterMovement()->RotationRate = (FinalValue.Length() > .8) ? FRotator(0, 180  + SprintPercentage * 180, 0) : FRotator::ZeroRotator;
-	
+
+	GetCharacterMovement()->MaxWalkSpeed = (FinalValue.Length() > .8) ? (200 + stats.Pace / 20 * 100) + (SprintPercentage * (stats.Pace / 20 * 200)) : 200;
+	GetCharacterMovement()->RotationRate = (FinalValue.Length() > .8) ? FRotator(0, 180 + SprintPercentage * 180, 0) : FRotator::ZeroRotator;
+
 
 	FinalValue.Normalize();
 	AddMovementInput(FinalValue);
 }
 
-void AFootballCharacter::EnhancedTackle(const FInputActionValue& Value)
-{
 
-	if(bIsCharging && !GetMesh()->GetAnimInstance()->IsAnyMontagePlaying())
-	{
-		FVector PassVector = GetActorLocation() + GetActorForwardVector() * (5000 * ChargePercentage);
-		DrawDebugSphere(GetWorld(), PassVector, 100, 16, FColor::Red);
-		DrawDebugLine(GetWorld(), GetActorLocation(), PassVector, FColor::Red, false,-1, 0, 10);
-		if (ChargePercentage >= 1 || !Value.Get<bool>())
-		{
-			bIsCharging = false;
-			PlayAnimMontage(MontageTackle, 1, EName::None);
-		}
-	}
-}
 
-void AFootballCharacter::EnhancedShot(const FInputActionValue& Value)
-{
 
-}
-
-void AFootballCharacter::EnhancedSprint(const FInputActionValue& Value)
-{
-	SprintPercentage = Value.Get<float>();
-}
 
 void AFootballCharacter::Shoot()
 {
@@ -184,6 +207,7 @@ void AFootballCharacter::OnPosessOverlapBegin(UPrimitiveComponent* OverlappedCom
 			ball->bIsPosessed = true;
 			ball->Com_Collision->SetSimulatePhysics(false);
 			bHasBall = true;
+			
 		}
 	}
 }

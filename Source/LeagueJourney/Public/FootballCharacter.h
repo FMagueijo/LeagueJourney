@@ -66,6 +66,9 @@ public:
 	UInputAction* TackleAction;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Input Actions")
+	UInputAction* PassAction;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Input Actions")
 	UInputAction* SprintAction;
 
 
@@ -80,6 +83,9 @@ public:
 
 	UFUNCTION()
 	void EnhancedTackle(const FInputActionValue& Value);
+
+	UFUNCTION()
+	void EnhancedPass(const FInputActionValue& Value);
 
 	UFUNCTION()
 	void EnhancedShot(const FInputActionValue& Value);
@@ -120,11 +126,18 @@ public:
 
 	//Player Properties
 
-	UPROPERTY(BlueprintReadOnly, Category = "Player Properties")
+	UPROPERTY(BlueprintReadWrite, Category = "Player Properties")
 	AFootball* KnownBall = nullptr;
 
-	UPROPERTY(BlueprintReadOnly, Category = "Player Properties")
+	UPROPERTY(BlueprintReadWrite, Category = "Player Properties")
 	bool bHasBall = false;
+
+	UPROPERTY(BlueprintReadWrite, Category = "Player Properties")
+	bool bPlaysAtHome = false;
+
+	UPROPERTY(BlueprintReadWrite, Category = "Player Properties")
+	FVector CurrentPosition;
+
 
 	UFUNCTION(BlueprintCallable)
 	void Shoot();
@@ -163,8 +176,6 @@ public:
 	UPROPERTY(BlueprintReadWrite, Category = "Character Animation Properties")
 	UCharacterAnimationInstance* anim_Class;
 
-	UPROPERTY(BlueprintReadWrite, Category = "Character Properties")
-	FVector CurrentPosition;
 
 
 	UPROPERTY(EditAnywhere, Category = "Debug Properties")
