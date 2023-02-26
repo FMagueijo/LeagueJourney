@@ -6,6 +6,7 @@
 #include "GameFramework/Actor.h"
 #include "Components/SphereComponent.h"
 #include "PhysicsEngine/PhysicsConstraintComponent.h"
+#include "PhysicsEngine/PhysicsHandleComponent.h"
 #include "Football.generated.h"
 
 UCLASS()
@@ -40,8 +41,7 @@ public:
 
 	UPROPERTY(BlueprintReadWrite)
 	class UStaticMeshComponent* Com_Mesh;
-
-
+	
 	FHitResult PerformRaycast();
 	
 };

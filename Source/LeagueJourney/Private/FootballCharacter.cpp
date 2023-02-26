@@ -50,7 +50,7 @@ void AFootballCharacter::Tick(float DeltaTime)
 		ChaseBall(KnownBall);
 	}
 
-	if(bIsCharging)
+	if(bIsCharging && !GetMesh()->GetAnimInstance()->IsAnyMontagePlaying())
 	{
 		ChargePercentage = FMath::Clamp(ChargePercentage += 1 * DeltaTime, 0.f, 1.f);
 	}
@@ -110,7 +110,6 @@ void AFootballCharacter::EnhancedTackle(const FInputActionValue& Value)
 		{
 			bIsCharging = false;
 			PlayAnimMontage(MontageTackle, 1, EName::None);
-			ChargePercentage = 0;
 		}
 	}
 }
@@ -123,6 +122,21 @@ void AFootballCharacter::EnhancedShot(const FInputActionValue& Value)
 void AFootballCharacter::EnhancedSprint(const FInputActionValue& Value)
 {
 	SprintPercentage = Value.Get<float>();
+}
+
+void AFootballCharacter::Shoot()
+{
+	if (KnownBall)
+	{
+		Cast<AFootball>(KnownBall)->DaddyPawn = nullptr;
+		Cast<AFootball>(KnownBall)->bIsPosessed = false;
+		Cast<AFootball>(KnownBall)->Com_Collision->SetSimulatePhysics(true);
+		FVector ShootVector = GetActorForwardVector() * (700 + ( ChargePercentage * (stats.Shooting / 20 * 2500)));
+		ShootVector.Z = 500 * ChargePercentage;
+		Cast<AFootball>(KnownBall)->Com_Collision->AddImpulse(ShootVector, EName::None, false);
+		bHasBall = false;
+	}
+	ChargePercentage = 0;
 }
 
 void AFootballCharacter::ChaseBall(AActor* ball)
@@ -161,9 +175,28 @@ void AFootballCharacter::OnPosessOverlapBegin(UPrimitiveComponent* OverlappedCom
 {
 	if (AFootball* ball = Cast<AFootball>(OtherActor))
 	{
-		ball->DaddyPawn = this;
-		ball->bIsPosessed = true;
-		bHasBall = true;
+		if(!GetMesh()->GetAnimInstance()->IsAnyMontagePlaying())
+		{
+			ball->DaddyPawn = this;
+			ball->bIsPosessed = true;
+			ball->Com_Collision->SetSimulatePhysics(false);
+			bHasBall = true;
+		}
+	}
+}
+
+void AFootballCharacter::OnPosessOverlapEnd(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
+	UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
+{
+	if (AFootball* ball = Cast<AFootball>(OtherActor))
+	{
+		if (!GetMesh()->GetAnimInstance()->IsAnyMontagePlaying())
+		{
+			ball->DaddyPawn = nullptr;
+			ball->bIsPosessed = false;
+			ball->Com_Collision->SetSimulatePhysics(true);
+			bHasBall = false;
+		}
 	}
 }
 

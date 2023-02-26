@@ -29,35 +29,15 @@ void AFootball::BeginPlay()
 void AFootball::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-
 	if (bIsPosessed && DaddyPawn)
 	{
-		GEngine->AddOnScreenDebugMessage(-1, 5, FColor::Red, "Ball Pos");
-		FTransform xx;
-		FVector TargetVector = (DaddyPawn->GetActorLocation() + DaddyPawn->GetActorForwardVector());
-		TargetVector.Z = 50;
-		TargetVector.Normalize();
-		xx.SetLocation(TargetVector);
-
-		Com_Collision->AddForce(TargetVector, NAME_None, true);
-		//Com_Collision->GetComponentVelocity(, NAME_None, true);
-
-
-		/*Com_Collision->SetSimulatePhysics(false);
-		if(Cast<AFootballCharacter>(WhoHasBall)->stats.Position != "GK")
-		{
-			(Cast<AFootballCharacter>(WhoHasBall)->isChasingBall) ? Cast<AFootballCharacter>(WhoHasBall)->isChasingBall = false : NULL;
-			FVector Where = WhoHasBall->GetActorLocation();
-			Where.Z = 11;
-			Where += WhoHasBall->GetActorForwardVector() * 50;
-			SetActorLocation(Where);
-		}
-		else
-		{
-			AttachToActor(WhoHasBall, FAttachmentTransformRules::SnapToTargetIncludingScale, "handy");
-		}*/
-		
+		FVector targetLocation = DaddyPawn->GetActorLocation();
+		targetLocation += DaddyPawn->GetActorForwardVector() * 50;
+		targetLocation.Z = 10;
+		DrawDebugSphere(GetWorld(), targetLocation, 50, 16, FColor::Red);
+		SetActorLocation(targetLocation);
 	}
+	
 	
 }
 
