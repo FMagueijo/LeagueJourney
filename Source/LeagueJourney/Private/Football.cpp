@@ -30,9 +30,20 @@ void AFootball::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	if (isTaken && WhoHasBall)
+	if (bIsPosessed && DaddyPawn)
 	{
-		Com_Collision->SetSimulatePhysics(false);
+		GEngine->AddOnScreenDebugMessage(-1, 5, FColor::Red, "Ball Pos");
+		FTransform xx;
+		FVector TargetVector = (DaddyPawn->GetActorLocation() + DaddyPawn->GetActorForwardVector());
+		TargetVector.Z = 50;
+		TargetVector.Normalize();
+		xx.SetLocation(TargetVector);
+
+		Com_Collision->AddForce(TargetVector, NAME_None, true);
+		//Com_Collision->GetComponentVelocity(, NAME_None, true);
+
+
+		/*Com_Collision->SetSimulatePhysics(false);
 		if(Cast<AFootballCharacter>(WhoHasBall)->stats.Position != "GK")
 		{
 			(Cast<AFootballCharacter>(WhoHasBall)->isChasingBall) ? Cast<AFootballCharacter>(WhoHasBall)->isChasingBall = false : NULL;
@@ -44,52 +55,10 @@ void AFootball::Tick(float DeltaTime)
 		else
 		{
 			AttachToActor(WhoHasBall, FAttachmentTransformRules::SnapToTargetIncludingScale, "handy");
-		}
-	}
-	else
-	{
-		Com_Collision->SetSimulatePhysics(true);
-		FHitResult Hit = PerformRaycast();
-		if (Hit.GetActor() && GetVelocity().Length() > 1100)
-		{
-			DrawDebugSphere(GetWorld(), Hit.Location, 100, 16, FColor::Red);
-			// Check if the hit actor has the target tag
-			if (Hit.GetComponent()->ComponentHasTag("BallDetector") || Hit.GetActor()->ActorHasTag("BallDetector"))
-			{
-				if (Hit.Location.X >= 290)
-				{
-					Com_Collision->AddForce(FVector::BackwardVector * (GetVelocity().Length()), NAME_None, true);
-				}
-				else if (Hit.Location.X <= -290)
-				{
-					Com_Collision->AddForce(FVector::ForwardVector * (GetVelocity().Length()), NAME_None, true);
-				}
-			}
-		}
+		}*/
 		
 	}
-}
-
-FHitResult AFootball::PerformRaycast()
-{
-	// Calculate the end location for the raycast using the view rotation and the maximum distance
-	FVector EndLocation = GetActorLocation() + (GetVelocity().GetSafeNormal() * 10000);
-
-	// Set up the trace parameters
-	FCollisionQueryParams TraceParams;
-	TraceParams.bTraceComplex = true;
-	TraceParams.bReturnPhysicalMaterial = false;
-
-
-	TraceParams.AddIgnoredActor((WhoHasBall) ? WhoHasBall : nullptr);
-	TraceParams.AddIgnoredActor(this);
-
-	// Perform the raycast
-	FHitResult Hit;
-	GetWorld()->LineTraceSingleByChannel(Hit, GetActorLocation(), EndLocation, ECC_WorldStatic, TraceParams);
-
-	DrawDebugLine(GetWorld(), GetActorLocation(), EndLocation, FColor::Red);
 	
-	return Hit;
 }
+
 

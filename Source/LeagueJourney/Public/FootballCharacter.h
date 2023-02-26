@@ -101,13 +101,24 @@ public:
 
 
 
+	//Montages
+
 	UPROPERTY(EditDefaultsOnly, Category = "Animation Properties")
 	UAnimMontage* MontageTackle;
 
 
 
-	
-	float Power = 0;
+	//Player Properties
+
+	UPROPERTY(BlueprintReadOnly, Category = "Player Properties")
+	AActor* KnownBall = nullptr;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Player Properties")
+	bool bHasBall = false;
+
+
+	UFUNCTION()
+	void ChaseBall(AActor* ball);
 
 	UPROPERTY(BlueprintReadWrite, Category = "Boolean Override")
 	bool hasBall = false;
@@ -151,16 +162,19 @@ public:
 #pragma region Components Related
 
 	UPROPERTY(EditAnywhere)
-	class USphereComponent* SphereCollision;
-	UFUNCTION()
-	void OnSphereOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
-	UFUNCTION()
-	void OnSphereOverlapEnd(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
+	class USphereComponent* BallDetectionArea;
 
 	UPROPERTY(EditAnywhere)
-	class USphereComponent* SmallSphereCollision;
+	class USphereComponent* BallPosessArea;
+
 	UFUNCTION()
-	void OnSsphereOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
+	void OnDetectionOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
+
+	UFUNCTION()
+	void OnDetectionOverlapEnd(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
+
+	UFUNCTION()
+	void OnPosessOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
 
 #pragma endregion
 };

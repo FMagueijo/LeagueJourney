@@ -25,14 +25,15 @@ public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
-	UPROPERTY(BlueprintReadWrite, EditAnywhere)
-	bool isTaken = false;
+	//Ball Properties
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
-	APawn* WhoWantsBall = nullptr;
+	bool bIsPosessed = false;
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
-	APawn* WhoHasBall = nullptr;
+	APawn* DaddyPawn = nullptr;
+	
+	
 
 	UPROPERTY(BlueprintReadWrite)
 	class USphereComponent* Com_Collision;

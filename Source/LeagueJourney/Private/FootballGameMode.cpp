@@ -108,14 +108,12 @@ void AFootballGameMode::SpawnCamera()
 				T_NewPawn.SetLocation(CurrentPosition);
 
 				AFootballCharacter* NewPawn = GetWorld()->SpawnActorDeferred<AFootballCharacter>(characterClass, T_NewPawn);
-
-				GEngine->AddOnScreenDebugMessage(-1, 150, FColor::Purple, SpawnedCamera->GetName());
+				
 				NewPawn->SpawnedCamera = SpawnedCamera;
 				NewPawn->stats = FootballerStruct;
 
 				if (animinstanceDefault && animinstanceGoalkeeper)
 				{
-					GEngine->AddOnScreenDebugMessage(-1, 1, FColor::Red, FootballerStruct.CurrentPosition);
 					( !UKismetStringLibrary::EqualEqual_StriStri("GK", FootballerStruct.CurrentPosition) ) ? NewPawn->GetMesh()->SetAnimClass(animinstanceDefault) : NewPawn->GetMesh()->SetAnimClass(animinstanceGoalkeeper);
 				}
 

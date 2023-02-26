@@ -17,14 +17,20 @@ AFootballCharacter::AFootballCharacter()
 {
  	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
-	
+	BallDetectionArea = CreateDefaultSubobject<USphereComponent>(FName("BallDetectionArea"));
+	BallPosessArea = CreateDefaultSubobject<USphereComponent>(FName("BallPosessArea"));
 }
 
 // Called when the game starts or when spawned
 void AFootballCharacter::BeginPlay()
 {
 	Super::BeginPlay();
-	
+
+	BallDetectionArea->AttachToComponent(GetCapsuleComponent(), FAttachmentTransformRules::SnapToTargetIncludingScale);
+	BallPosessArea->AttachToComponent(GetCapsuleComponent(), FAttachmentTransformRules::SnapToTargetIncludingScale);
+	BallDetectionArea->OnComponentBeginOverlap.AddDynamic(this, &AFootballCharacter::OnDetectionOverlapBegin);
+	BallDetectionArea->OnComponentEndOverlap.AddDynamic(this, &AFootballCharacter::OnDetectionOverlapEnd);
+	BallPosessArea->OnComponentBeginOverlap.AddDynamic(this, &AFootballCharacter::OnPosessOverlapBegin);
 	if(APlayerController* _PC = Cast<AFootballerController>(UGameplayStatics::GetPlayerController(GetWorld(), 0)))
 	{
 		if (UEnhancedInputLocalPlayerSubsystem* _Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(_PC->GetLocalPlayer()))
@@ -39,9 +45,14 @@ void AFootballCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+	if(!bHasBall && KnownBall != nullptr)
+	{
+		ChaseBall(KnownBall);
+	}
+
 	if(bIsCharging)
 	{
-		ChargePercentage = FMath::Clamp(ChargePercentage += .45 * DeltaTime, 0.f, 1.f);
+		ChargePercentage = FMath::Clamp(ChargePercentage += 1 * DeltaTime, 0.f, 1.f);
 	}
 
 }
@@ -92,7 +103,6 @@ void AFootballCharacter::EnhancedMove(const FInputActionValue& Value)
 
 void AFootballCharacter::EnhancedTackle(const FInputActionValue& Value)
 {
-	GEngine->AddOnScreenDebugMessage(-1, 1, FColor::Red, "About to shoot -> " + FString::SanitizeFloat(ChargePercentage));
 
 	if(bIsCharging && !GetMesh()->GetAnimInstance()->IsAnyMontagePlaying())
 	{
@@ -113,6 +123,48 @@ void AFootballCharacter::EnhancedShot(const FInputActionValue& Value)
 void AFootballCharacter::EnhancedSprint(const FInputActionValue& Value)
 {
 	SprintPercentage = Value.Get<float>();
+}
+
+void AFootballCharacter::ChaseBall(AActor* ball)
+{
+	FVector MoveToVector =  ball->GetActorLocation() - GetActorLocation();
+
+	GetCharacterMovement()->MaxWalkSpeed = (MoveToVector.Length() > .8) ? (200 + stats.Pace / 20 * 100) + (SprintPercentage * (stats.Pace / 20 * 200)) : 200;
+	GetCharacterMovement()->RotationRate = (MoveToVector.Length() > .8) ? FRotator(0, 180 + SprintPercentage * 180, 0) : FRotator::ZeroRotator;
+
+	AddMovementInput(MoveToVector);
+}
+
+void AFootballCharacter::OnDetectionOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
+                                                 UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+{
+	if(Cast<AFootball>(OtherActor))
+	{
+		GEngine->AddOnScreenDebugMessage(-1, 5, FColor::Red, "Les go");
+		KnownBall = OtherActor;
+	}
+
+}
+
+void AFootballCharacter::OnDetectionOverlapEnd(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
+	UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
+{
+	if (Cast<AFootball>(OtherActor))
+	{
+		GEngine->AddOnScreenDebugMessage(-1, 5, FColor::Red, "Les a not a go");
+		KnownBall = nullptr;
+	}
+}
+
+void AFootballCharacter::OnPosessOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
+	UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+{
+	if (AFootball* ball = Cast<AFootball>(OtherActor))
+	{
+		ball->DaddyPawn = this;
+		ball->bIsPosessed = true;
+		bHasBall = true;
+	}
 }
 
 
