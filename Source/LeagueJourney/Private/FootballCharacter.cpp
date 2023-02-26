@@ -38,7 +38,10 @@ void AFootballCharacter::BeginPlay()
 void AFootballCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-
+	if(GetController()->GetPawn() == this)
+	{
+		GEngine->AddOnScreenDebugMessage(-1, .5, FColor::Red, FString::SanitizeFloat(stats.Pace));
+	}
 }
 
 void AFootballCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
@@ -62,8 +65,8 @@ void AFootballCharacter::EnhancedMove(const FInputActionValue& Value)
 	FVector FinalValue = (SpawnedCamera != nullptr)?  Cast<AStadiumCamera>(SpawnedCamera)->Com_Camera->GetForwardVector() * CurrentValue.Y + Cast<AStadiumCamera>(SpawnedCamera)->Com_Camera->GetRightVector() * CurrentValue.X : CurrentPosition;
 	FinalValue.Z = 0;
 	
-	GetCharacterMovement()->MaxWalkSpeed = (FinalValue.Length() > .7) ? (200 + stats.Pace/20 * 200) + (SprintPercentage * (stats.Pace / 20 * 400)) : 200;
-	GetCharacterMovement()->RotationRate = (FinalValue.Length() > .7) ? FRotator(0, 180  + SprintPercentage * 180, 0) : FRotator::ZeroRotator;
+	GetCharacterMovement()->MaxWalkSpeed = (FinalValue.Length() > .8) ? (200 + stats.Pace/20 * 100) + (SprintPercentage * (stats.Pace / 20 * 200)) : 200;
+	GetCharacterMovement()->RotationRate = (FinalValue.Length() > .8) ? FRotator(0, 180  + SprintPercentage * 180, 0) : FRotator::ZeroRotator;
 	
 
 	FinalValue.Normalize();
@@ -73,7 +76,6 @@ void AFootballCharacter::EnhancedMove(const FInputActionValue& Value)
 void AFootballCharacter::EnhancedSprint(const FInputActionValue& Value)
 {
 	float CurrentValue = Value.Get<float>();
-	GEngine->AddOnScreenDebugMessage(-1, 1, FColor::Green, FString::SanitizeFloat(CurrentValue));
 	SprintPercentage = CurrentValue;
 }
 
