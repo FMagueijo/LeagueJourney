@@ -50,7 +50,7 @@ void AFootball::Tick(float DeltaTime)
 		}
 
 
-		if (UGameplayStatics::GetPlayerController(GetWorld(), 0)->GetPawn() != DaddyPawn)
+		if (UGameplayStatics::GetPlayerController(GetWorld(), 0)->GetPawn() != DaddyPawn && Cast<AFootballCharacter>(DaddyPawn)->bPlaysAtHome)
 		{
 			UGameplayStatics::GetPlayerController(GetWorld(), 0)->Possess(DaddyPawn);
 		}

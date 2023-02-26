@@ -51,10 +51,23 @@ void AFootballGameMode::BeginPlay()
 void AFootballGameMode::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
-	if(SpawnedFootball != nullptr)
+	if(bTeamHasBallHome)
 	{
-		GEngine->AddOnScreenDebugMessage(-1, 1, FColor::Yellow, "Yes it does");
+		attackPercentageHome = FMath::Clamp(attackPercentageHome += .15 * DeltaSeconds, 0.0f, 1.0f);
+		attackPercentageAway = FMath::Clamp(attackPercentageAway -= .25 * DeltaSeconds, 0.0f, 1.0f);
 	}
+	else if(bTeamHasBallAway)
+	{
+		attackPercentageHome = FMath::Clamp(attackPercentageHome -= .25 * DeltaSeconds, 0.0f, 1.0f);
+		attackPercentageAway = FMath::Clamp(attackPercentageAway += .15 * DeltaSeconds, 0.0f, 1.0f);
+	}
+	else
+	{
+		attackPercentageHome = FMath::Clamp(attackPercentageHome -= .25 * DeltaSeconds, 0.0f, 1.0f);
+		attackPercentageAway = FMath::Clamp(attackPercentageAway -= .25 * DeltaSeconds, 0.0f, 1.0f);
+	}
+	GEngine->AddOnScreenDebugMessage(-1, 1, FColor::Yellow, "Home % -> " + FString::SanitizeFloat(attackPercentageHome));
+	GEngine->AddOnScreenDebugMessage(-1, 1, FColor::Yellow, "Away % -> " + FString::SanitizeFloat(attackPercentageAway));
 }
 
 

@@ -138,7 +138,7 @@ void AFootballCharacter::EnhancedMove(const FInputActionValue& Value)
 	FVector FinalValue = (SpawnedCamera != nullptr) ? Cast<AStadiumCamera>(SpawnedCamera)->Com_Camera->GetForwardVector() * CurrentValue.Y + Cast<AStadiumCamera>(SpawnedCamera)->Com_Camera->GetRightVector() * CurrentValue.X : CurrentPosition;
 	FinalValue.Z = 0;
 
-	GetCharacterMovement()->MaxWalkSpeed = (FinalValue.Length() > .8) ? (200 + stats.Pace / 20 * 100) + (SprintPercentage * (stats.Pace / 20 * 200)) : 200;
+	GetCharacterMovement()->MaxWalkSpeed = (FinalValue.Length() > .8) ? (300 + stats.Pace / 20 * 100) + (SprintPercentage * (stats.Pace / 20 * 350)) : 300;
 	GetCharacterMovement()->RotationRate = (FinalValue.Length() > .8) ? FRotator(0, 180 + SprintPercentage * 180, 0) : FRotator::ZeroRotator;
 
 
