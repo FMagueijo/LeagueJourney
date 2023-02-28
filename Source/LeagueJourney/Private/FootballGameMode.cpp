@@ -44,7 +44,7 @@ void AFootballGameMode::BeginPlay()
 	}
 
 	PC = UGameplayStatics::GetPlayerController(GetWorld(), 0);
-	PC->Possess(pawnElevenHome[pawnElevenHome.Num() - 1]);
+	PC->Possess(Cast<APawn>(pawnElevenHome[pawnElevenHome.Num() - 1]));
 
 }
 
@@ -66,8 +66,6 @@ void AFootballGameMode::Tick(float DeltaSeconds)
 		attackPercentageHome = FMath::Clamp(attackPercentageHome -= .25 * DeltaSeconds, 0.0f, 1.0f);
 		attackPercentageAway = FMath::Clamp(attackPercentageAway -= .25 * DeltaSeconds, 0.0f, 1.0f);
 	}
-	GEngine->AddOnScreenDebugMessage(-1, 1, FColor::Yellow, "Home % -> " + FString::SanitizeFloat(attackPercentageHome));
-	GEngine->AddOnScreenDebugMessage(-1, 1, FColor::Yellow, "Away % -> " + FString::SanitizeFloat(attackPercentageAway));
 }
 
 
@@ -123,6 +121,7 @@ void AFootballGameMode::SpawnCamera()
 				AFootballCharacter* NewPawn = GetWorld()->SpawnActorDeferred<AFootballCharacter>(characterClass, T_NewPawn);
 				
 				NewPawn->SpawnedCamera = SpawnedCamera;
+				NewPawn->CurrentGameMode = this;
 				NewPawn->stats = FootballerStruct;
 				NewPawn->CurrentPosition = CurrentPosition;
 				NewPawn->bPlaysAtHome = isHome;

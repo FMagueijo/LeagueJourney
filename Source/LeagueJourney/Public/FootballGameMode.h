@@ -81,10 +81,10 @@ public:
 	FTeam teamAway;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Teams Properties")
-	TArray<APawn*> pawnElevenHome;
+	TArray<AActor*> pawnElevenHome;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Teams Properties")
-	TArray<APawn*> pawnElevenAway;
+	TArray<AActor*> pawnElevenAway;
 
 
 

@@ -29,6 +29,8 @@ public:
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
+
+	void FindClosestPawn(bool isHome);
 	
 public:	
 	// Called every frame
@@ -106,7 +108,10 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category = "Input Properties")
 	float ChargePercentage = 0.f;
 
+	UPROPERTY(BlueprintReadOnly, Category = "Input Properties")
+	AActor* PlayerToPassTo;
 
+	AGameModeBase* CurrentGameMode;
 
 	//Montages
 
@@ -141,6 +146,9 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	void Shoot();
+
+	UFUNCTION(BlueprintCallable)
+	void Pass();
 
 	UFUNCTION()
 	void ChaseBall(AActor* ball);

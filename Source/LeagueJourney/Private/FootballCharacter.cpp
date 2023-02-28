@@ -9,6 +9,7 @@
 #include "FootballerController.h"
 #include "Football.h"
 #include "Kismet/GameplayStatics.h"
+#include "Kismet/KismetMathLibrary.h"
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 
@@ -41,6 +42,25 @@ void AFootballCharacter::BeginPlay()
 	
 }
 
+void AFootballCharacter::FindClosestPawn(bool isHome)
+{
+	FVector PassVector = GetActorLocation() + GetActorForwardVector() * (5000 * ChargePercentage);
+
+	DrawDebugSphere(GetWorld(), PassVector, 100, 16, FColor::Red);
+	DrawDebugLine(GetWorld(), GetActorLocation(), PassVector, FColor::Red, false, -1, 0, 10);
+	
+	float x = 0;
+
+	TArray<AActor*> AllTeamPlayer = (isHome) ? Cast<AFootballGameMode>(CurrentGameMode)->pawnElevenHome : Cast<AFootballGameMode>(CurrentGameMode)->pawnElevenAway;
+	AllTeamPlayer.Remove(this);
+	AActor* ClosestPawn = UGameplayStatics::FindNearestActor(PassVector, AllTeamPlayer, x);
+
+	PlayerToPassTo = ClosestPawn;
+	
+	GEngine->AddOnScreenDebugMessage(-1, 1, FColor::Red, FString::SanitizeFloat(stats.Passing / 20.0 * 2000.0) + " - > " + ((PlayerToPassTo) ? PlayerToPassTo->GetName() : "None Found"));
+
+}
+
 void AFootballCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
@@ -52,11 +72,7 @@ void AFootballCharacter::Tick(float DeltaTime)
 
 	if(bIsCharging && !GetMesh()->GetAnimInstance()->IsAnyMontagePlaying())
 	{
-		FVector PassVector = GetActorLocation() + GetActorForwardVector() * (5000 * ChargePercentage);
-		
-		DrawDebugSphere(GetWorld(), PassVector, 100, 16, FColor::Red);
-		DrawDebugLine(GetWorld(), GetActorLocation(), PassVector, FColor::Red, false, -1, 0, 10);
-
+		FindClosestPawn(bPlaysAtHome);
 		ChargePercentage = FMath::Clamp(ChargePercentage += 1 * DeltaTime, 0.f, 1.f);
 	}
 
@@ -95,6 +111,7 @@ void AFootballCharacter::EnhancedPass(const FInputActionValue& Value)
 {
 	if (bIsCharging && !GetMesh()->GetAnimInstance()->IsAnyMontagePlaying())
 	{
+		
 		if (ChargePercentage >= 1 || !Value.Get<bool>())
 		{
 			bIsCharging = false;
@@ -126,6 +143,7 @@ void AFootballCharacter::EnhancedCharge(const FInputActionValue& Value)
 {
 	if (!bIsCharging && !GetMesh()->GetAnimInstance()->IsAnyMontagePlaying())
 	{
+		PlayerToPassTo = nullptr;
 		bIsCharging = Value.Get<bool>();
 		GEngine->AddOnScreenDebugMessage(-1, 10, FColor::Red, "Charging");
 	}
@@ -152,14 +170,61 @@ void AFootballCharacter::EnhancedMove(const FInputActionValue& Value)
 
 void AFootballCharacter::Shoot()
 {
-	if (KnownBall && ChargePercentage > 0)
+	if (KnownBall && bHasBall)
 	{
+		if(ChargePercentage == 0)
+		{
+			ChargePercentage = FMath::FRandRange(0.1, 1.0);
+		}
 		Cast<AFootball>(KnownBall)->DaddyPawn = nullptr;
 		Cast<AFootball>(KnownBall)->bIsPosessed = false;
 		Cast<AFootball>(KnownBall)->Com_Collision->SetSimulatePhysics(true);
-		FVector ShootVector = GetActorForwardVector() * (700 + ( ChargePercentage * (stats.Shooting / 20 * 1800)));
+		FVector ShootVector = GetActorForwardVector() * (700.0 + ( ChargePercentage * (stats.Shooting / 20.0 * 1800.0)));
 		ShootVector.Z = (350 * ChargePercentage);
 		Cast<AFootball>(KnownBall)->Com_Collision->AddImpulse(ShootVector, EName::None, false);
+		bHasBall = false;
+	}
+	ChargePercentage = 0;
+}
+
+void AFootballCharacter::Pass()
+{
+	if (KnownBall && bHasBall)
+	{
+		if (ChargePercentage == 0)
+		{
+			ChargePercentage = FMath::FRandRange(0.1, 1.0);
+			FindClosestPawn(bPlaysAtHome);
+			if(PlayerToPassTo == nullptr)
+			{
+				TArray<AActor*> AllTeamPlayer = (bPlaysAtHome) ? Cast<AFootballGameMode>(CurrentGameMode)->pawnElevenHome : Cast<AFootballGameMode>(CurrentGameMode)->pawnElevenAway;
+				AllTeamPlayer.Remove(this);
+				float x;
+				PlayerToPassTo = UGameplayStatics::FindNearestActor(GetActorLocation(), AllTeamPlayer, x);
+				
+			}
+		}
+		Cast<AFootball>(KnownBall)->DaddyPawn = nullptr;
+		Cast<AFootball>(KnownBall)->bIsPosessed = false;
+		Cast<AFootball>(KnownBall)->Com_Collision->SetSimulatePhysics(true);
+		
+		FVector PassVector = PlayerToPassTo->GetActorLocation() - KnownBall->GetActorLocation();
+
+		if(PlayerToPassTo != nullptr)
+		{
+			PassVector = PlayerToPassTo->GetActorLocation() - KnownBall->GetActorLocation();
+			FRotator lookAtPass = UKismetMathLibrary::FindLookAtRotation(GetActorLocation(), PlayerToPassTo->GetActorLocation());
+			SetActorRotation(FRotator(0, lookAtPass.Yaw, 0));
+		}
+		else
+		{
+			PassVector = GetActorForwardVector();
+		}
+		PassVector.Normalize();
+		PassVector *= (700.0 + (ChargePercentage * (stats.Passing / 20.0 * 1800.0)));
+		PassVector.Z = (250 * ChargePercentage);
+		GEngine->AddOnScreenDebugMessage(-1, 100, FColor::Red, PassVector.ToString());
+		Cast<AFootball>(KnownBall)->Com_Collision->AddImpulse(PassVector, EName::None, false);
 		bHasBall = false;
 	}
 	ChargePercentage = 0;
