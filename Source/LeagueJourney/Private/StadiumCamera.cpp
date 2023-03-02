@@ -34,7 +34,7 @@ void AStadiumCamera::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 
 	//CameraCurrentPosition = (PC->GetPawn()->GetActorLocation() + SpawnedFootball->GetActorLocation()) / 2;
-	CameraCurrentPosition = PC->GetPawn()->GetActorLocation();
+	/*CameraCurrentPosition = (PC->GetPawn() != nullptr) ? PC->GetPawn()->GetActorLocation() : FVector(0, 0, 0);
 	CameraCurrentPosition.Z = 0;
 	
 	FRotator CameraFinalRotation = UKismetMathLibrary::FindLookAtRotation(Com_Camera->GetComponentLocation(), CameraCurrentPosition);
@@ -42,17 +42,35 @@ void AStadiumCamera::Tick(float DeltaTime)
 
 	CameraCurrentPosition.Y = FMath::Clamp(CameraCurrentPosition.Y, minmaxYposition * -1, minmaxYposition);
 
-	this->SetActorLocation(CameraCurrentPosition);
+	this->SetActorLocation(CameraCurrentPosition);*/
 
-	/*if (isOnScreen((PC->GetPawn()) ? PC->GetPawn() : nullptr) && isOnScreen(SpawnedFootball))
+	
+
+
+	FVector Object1Position = (SpawnedFootball != nullptr) ? SpawnedFootball->GetActorLocation() : FVector(0, 0, 0);
+	FVector Object2Position = (PC->GetPawn() != nullptr) ? PC->GetPawn()->GetActorLocation() : FVector(0, 0, 0);
+
+	// Calculate the midpoint between the two objects
+	FVector Midpoint = (Object1Position + Object2Position) / 2;
+	Midpoint.Z = 0;
+
+
+	if (isOnScreen((PC->GetPawn()) ? PC->GetPawn() : nullptr) && isOnScreen(SpawnedFootball))
 	{
-		(Com_SpringArm->TargetArmLength > 1300) ? Com_SpringArm->TargetArmLength -= 10 * DeltaTime : NULL;
+		(Com_SpringArm->TargetArmLength > 2500) ? Com_SpringArm->TargetArmLength = FMath::Lerp(Com_SpringArm->TargetArmLength, Com_SpringArm->TargetArmLength - 5, 1.f) : NULL;
 	}
 	else
 	{
 
-		Com_SpringArm->TargetArmLength += 1000 * DeltaTime;
-	}*/
+		Com_SpringArm->TargetArmLength = FMath::Lerp(Com_SpringArm->TargetArmLength, Com_SpringArm->TargetArmLength + 5, 1.f);
+	}
+
+
+	Midpoint = FMath::Lerp(GetActorLocation(), Midpoint, .5f);
+	SetActorLocation(Midpoint);
+
+	FRotator CameraFinalRotation = UKismetMathLibrary::FindLookAtRotation(Com_Camera->GetComponentLocation(), Midpoint);
+	Com_Camera->SetWorldRotation(CameraFinalRotation);
 
 	Com_SpringArm->TargetArmLength = FMath::Clamp(Com_SpringArm->TargetArmLength, 1300, 15000);
 	
@@ -70,5 +88,5 @@ bool AStadiumCamera::isOnScreen(AActor* WhichActor)
 	int32 ScreenX = (int32)ScreenLocation.X;
 	int32 ScreenY = (int32)ScreenLocation.Y;
 
-	return ScreenX >= 1 && ScreenY >= 1 && ScreenX < ScreenWidth&& ScreenY < ScreenHeight;
+	return ScreenX >= .8 && ScreenY >= .8 && ScreenX < ScreenWidth * .8 && ScreenY < ScreenHeight * .8;
 }

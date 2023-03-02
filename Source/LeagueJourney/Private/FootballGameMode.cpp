@@ -18,8 +18,8 @@ void AFootballGameMode::BeginPlay()
 	Super::BeginPlay();
 
 
-	SpawnCamera();
 	SpawnFootball();
+	SpawnCamera();
 
 	if(UFootballMatchInstance * matchInstance = Cast<UFootballMatchInstance>(GetGameInstance()))
 	{
@@ -44,8 +44,19 @@ void AFootballGameMode::BeginPlay()
 	}
 
 	PC = UGameplayStatics::GetPlayerController(GetWorld(), 0);
-	PC->Possess(Cast<APawn>(pawnElevenHome[pawnElevenHome.Num() - 1]));
+	for(AActor* actor : pawnElevenHome)
+	{
+		if(Cast<AFootballCharacter>(actor)->stats.CurrentPosition == "ST" || Cast<AFootballCharacter>(actor)->stats.CurrentPosition == "LST" || Cast<AFootballCharacter>(actor)->stats.CurrentPosition == "RST")
+		{
+			PC->Possess(Cast<APawn>(actor));
+		}
 
+	}
+
+	if(PC->GetPawn() == nullptr)
+	{
+		PC->Possess(Cast<APawn>(pawnElevenHome[0]));
+	}
 }
 
 void AFootballGameMode::Tick(float DeltaSeconds)
@@ -53,18 +64,25 @@ void AFootballGameMode::Tick(float DeltaSeconds)
 	Super::Tick(DeltaSeconds);
 	if(bTeamHasBallHome)
 	{
-		attackPercentageHome = FMath::Clamp(attackPercentageHome += .15 * DeltaSeconds, 0.0f, 1.0f);
-		attackPercentageAway = FMath::Clamp(attackPercentageAway -= .25 * DeltaSeconds, 0.0f, 1.0f);
+		if (PC && PC->GetPawn())
+		{
+			attackPercentageHome = FMath::Clamp((PC->GetPawn()->GetActorLocation().Y / 5700.0 < 0)? (PC->GetPawn()->GetActorLocation().Y / 5700.0)*-2.0 : PC->GetPawn()->GetActorLocation().Y / 5700.0, 0.0f, 1.0f)*2;
+		}
+		else
+		{
+			attackPercentageHome = FMath::Clamp(attackPercentageHome += .5 * DeltaSeconds, 0.0f, 1.0f);
+		}
+		attackPercentageAway = FMath::Clamp(attackPercentageAway -= .05 * DeltaSeconds, 0.0f, 1.0f);
 	}
 	else if(bTeamHasBallAway)
 	{
-		attackPercentageHome = FMath::Clamp(attackPercentageHome -= .25 * DeltaSeconds, 0.0f, 1.0f);
+		attackPercentageHome = FMath::Clamp(attackPercentageHome -= .5 * DeltaSeconds, 0.0f, 1.0f);
 		attackPercentageAway = FMath::Clamp(attackPercentageAway += .15 * DeltaSeconds, 0.0f, 1.0f);
 	}
 	else
 	{
-		attackPercentageHome = FMath::Clamp(attackPercentageHome -= .25 * DeltaSeconds, 0.0f, 1.0f);
-		attackPercentageAway = FMath::Clamp(attackPercentageAway -= .25 * DeltaSeconds, 0.0f, 1.0f);
+		attackPercentageHome = FMath::Clamp(attackPercentageHome -= .05 * DeltaSeconds, 0.0f, 1.0f);
+		attackPercentageAway = FMath::Clamp(attackPercentageAway -= .05 * DeltaSeconds, 0.0f, 1.0f);
 	}
 }
 

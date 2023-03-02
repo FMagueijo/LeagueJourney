@@ -153,6 +153,8 @@ public:
 	UFUNCTION()
 	void ChaseBall(AActor* ball);
 
+	bool IsActorBehind(AActor* actor0, AActor* actor1);
+	
 	UPROPERTY(BlueprintReadWrite, Category = "Boolean Override")
 	bool hasBall = false;
 	UPROPERTY(BlueprintReadWrite, Category = "Boolean Override")

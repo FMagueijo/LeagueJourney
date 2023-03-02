@@ -56,6 +56,9 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category = "Player Properties")
 	APlayerController* PC;
 
+	UPROPERTY(EditDefaultsOnly, Category = "Player Properties")
+	bool bPossessCharacter;
+
 	UPROPERTY(BlueprintReadWrite, Category = "Player Properties")
 	FFootballer DefaultStats;
 

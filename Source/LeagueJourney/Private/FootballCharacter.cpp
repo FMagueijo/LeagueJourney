@@ -34,6 +34,7 @@ void AFootballCharacter::BeginPlay()
 	BallPosessArea->OnComponentBeginOverlap.AddDynamic(this, &AFootballCharacter::OnPosessOverlapBegin);
 	if(APlayerController* _PC = Cast<AFootballerController>(UGameplayStatics::GetPlayerController(GetWorld(), 0)))
 	{
+		PC = _PC;
 		if (UEnhancedInputLocalPlayerSubsystem* _Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(_PC->GetLocalPlayer()))
 		{
 			_Subsystem->AddMappingContext(BaseMappingContext, 5);
@@ -47,15 +48,29 @@ void AFootballCharacter::FindClosestPawn(bool isHome)
 	FVector PassVector = GetActorLocation() + GetActorForwardVector() * (5000 * ChargePercentage);
 
 	DrawDebugSphere(GetWorld(), PassVector, 100, 16, FColor::Red);
+	DrawDebugSphere(GetWorld(), PassVector, 300 + ChargePercentage * (stats.Passing/20.0 * 4000), 16, FColor::Blue);
 	DrawDebugLine(GetWorld(), GetActorLocation(), PassVector, FColor::Red, false, -1, 0, 10);
 	
 	float x = 0;
 
 	TArray<AActor*> AllTeamPlayer = (isHome) ? Cast<AFootballGameMode>(CurrentGameMode)->pawnElevenHome : Cast<AFootballGameMode>(CurrentGameMode)->pawnElevenAway;
 	AllTeamPlayer.Remove(this);
+	int y = 0;
+	for(AActor* actor : AllTeamPlayer)
+	{
+		if(IsActorBehind(this, actor))
+		{
+			AllTeamPlayer.Remove(actor);
+			y++;
+		}
+	}
+	GEngine->AddOnScreenDebugMessage(-1, 10, FColor::Cyan, "Removed " + FString::FromInt(y));
 	AActor* ClosestPawn = UGameplayStatics::FindNearestActor(PassVector, AllTeamPlayer, x);
 
-	PlayerToPassTo = ClosestPawn;
+	if(x <= 300 + ChargePercentage * (stats.Passing / 20.0 * 4000))
+	{
+		PlayerToPassTo = ClosestPawn;
+	}
 	
 	GEngine->AddOnScreenDebugMessage(-1, 1, FColor::Red, FString::SanitizeFloat(stats.Passing / 20.0 * 2000.0) + " - > " + ((PlayerToPassTo) ? PlayerToPassTo->GetName() : "None Found"));
 
@@ -65,7 +80,7 @@ void AFootballCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	if(!bHasBall && KnownBall != nullptr)
+	if(!bHasBall && KnownBall != nullptr && PC->GetPawn() == this)
 	{
 		ChaseBall(KnownBall);
 	}
@@ -240,6 +255,33 @@ void AFootballCharacter::ChaseBall(AActor* ball)
 	AddMovementInput(MoveToVector);
 }
 
+bool AFootballCharacter::IsActorBehind(AActor* actor0, AActor* actor1)
+{
+	FVector Actor1Location = actor0->GetActorLocation();
+	FVector Actor1Forward = actor0->GetActorForwardVector();
+
+	FVector Actor2Location = actor1->GetActorLocation();
+	FVector Actor2Forward = actor1->GetActorForwardVector();
+
+	FVector Actor2ToActor1 = Actor1Location - Actor2Location;
+
+	Actor1Forward.Normalize();
+	Actor2Forward.Normalize();
+
+	float DotProduct = FVector::DotProduct(Actor2ToActor1, Actor2Forward);
+	if (DotProduct < 0.0f)
+	{
+		return true;
+	}
+	else
+	{
+		return false;
+	}
+
+
+}
+
+
 void AFootballCharacter::OnDetectionOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
                                                  UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
@@ -272,7 +314,15 @@ void AFootballCharacter::OnPosessOverlapBegin(UPrimitiveComponent* OverlappedCom
 			ball->bIsPosessed = true;
 			ball->Com_Collision->SetSimulatePhysics(false);
 			bHasBall = true;
-			
+			if(!bPlaysAtHome)
+			{
+				float x = 0;
+				AActor* ClosestPawn = UGameplayStatics::FindNearestActor(GetActorLocation(), Cast<AFootballGameMode>(CurrentGameMode)->pawnElevenHome, x);
+				if(PC->GetPawn() != ClosestPawn)
+				{
+					PC->Possess(Cast<APawn>(ClosestPawn));
+				}
+			}
 		}
 	}
 }
