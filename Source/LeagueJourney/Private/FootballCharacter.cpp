@@ -49,42 +49,64 @@ void AFootballCharacter::FindClosestPawn(bool isHome)
 
 	DrawDebugSphere(GetWorld(), PassVector, 100, 16, FColor::Red);
 	DrawDebugSphere(GetWorld(), PassVector, 300 + ChargePercentage * (stats.Passing/20.0 * 4000), 16, FColor::Blue);
-	DrawDebugLine(GetWorld(), GetActorLocation(), PassVector, FColor::Red, false, -1, 0, 10);
+	//DrawDebugLine(GetWorld(), GetActorLocation(), PassVector, FColor::Red, false, -1, 0, 10);
 	
 	float x = 0;
 
 	TArray<AActor*> AllTeamPlayer = (isHome) ? Cast<AFootballGameMode>(CurrentGameMode)->pawnElevenHome : Cast<AFootballGameMode>(CurrentGameMode)->pawnElevenAway;
+	TArray<AActor*> RealAllTeamPlayer;
 	AllTeamPlayer.Remove(this);
-	int y = 0;
-	for(AActor* actor : AllTeamPlayer)
+
+	for(AActor* clActor : AllTeamPlayer)
 	{
-		if(IsActorBehind(this, actor))
+		
+		FVector DirectionToPlayer = clActor->GetActorLocation() - PassVector;
+		if (DirectionToPlayer.GetSafeNormal().CosineAngle2D(GetActorForwardVector()) > .9 - (ChargePercentage * .9))
 		{
-			AllTeamPlayer.Remove(actor);
-			y++;
+			DrawDebugSphere(GetWorld(), clActor->GetActorLocation(), 300 * DirectionToPlayer.GetSafeNormal().CosineAngle2D(GetActorForwardVector()), 16, FColor::Blue);
+			DrawDebugString(GetWorld(), clActor->GetActorLocation(), FString::SanitizeFloat(DirectionToPlayer.GetSafeNormal().CosineAngle2D(GetActorForwardVector())), 0, FColor::Red, .01, false, 1);
+			RealAllTeamPlayer.Add(clActor);
 		}
-	}
-	GEngine->AddOnScreenDebugMessage(-1, 10, FColor::Cyan, "Removed " + FString::FromInt(y));
-	AActor* ClosestPawn = UGameplayStatics::FindNearestActor(PassVector, AllTeamPlayer, x);
 
-	if(x <= 300 + ChargePercentage * (stats.Passing / 20.0 * 4000))
+	}
+	DrawDebugString(GetWorld(), GetActorLocation(), "Current Angles = " + FString::SanitizeFloat(FMath::RadiansToDegrees(FMath::Acos(.9 - (ChargePercentage * .9)))), 0, FColor::Yellow, .01, false, 2);
+
+	AActor* closeA = UGameplayStatics::FindNearestActor(PassVector, RealAllTeamPlayer, x);
+	for (AActor* clActor : RealAllTeamPlayer)
 	{
-		PlayerToPassTo = ClosestPawn;
-	}
-	
-	GEngine->AddOnScreenDebugMessage(-1, 1, FColor::Red, FString::SanitizeFloat(stats.Passing / 20.0 * 2000.0) + " - > " + ((PlayerToPassTo) ? PlayerToPassTo->GetName() : "None Found"));
 
+	}
+	GEngine->AddOnScreenDebugMessage(-1, 1, FColor::Red, FString::FromInt(RealAllTeamPlayer.Num()));
+	PlayerToPassTo = closeA;
 }
 
 void AFootballCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	if(!bHasBall && KnownBall != nullptr && PC->GetPawn() == this)
+	if(AFootballGameMode* AGM = Cast<AFootballGameMode>(CurrentGameMode))
+	{
+		if(AGM->SpawnedFootball)
+		{
+			if(!AGM->SpawnedFootball->bIsPosessed)
+			{
+				BallDetectionArea->SetSphereRadius(BallDetectionArea->GetUnscaledSphereRadius() + 500 * DeltaTime);
+			}
+			else
+			{
+				BallDetectionArea->SetSphereRadius(FMath::Lerp(BallDetectionArea->GetUnscaledSphereRadius() + 200 * DeltaTime, 200, 0.5));
+			}
+		}
+	}
+	if(PC->GetPawn() == this)
+	{
+		FindClosestPawn(bPlaysAtHome);
+		
+	}
+	if (!bHasBall && KnownBall != nullptr && PC->GetPawn() == this)
 	{
 		ChaseBall(KnownBall);
 	}
-
 	if(bIsCharging && !GetMesh()->GetAnimInstance()->IsAnyMontagePlaying())
 	{
 		FindClosestPawn(bPlaysAtHome);
@@ -223,8 +245,7 @@ void AFootballCharacter::Pass()
 		Cast<AFootball>(KnownBall)->bIsPosessed = false;
 		Cast<AFootball>(KnownBall)->Com_Collision->SetSimulatePhysics(true);
 		
-		FVector PassVector = PlayerToPassTo->GetActorLocation() - KnownBall->GetActorLocation();
-
+		FVector PassVector;
 		if(PlayerToPassTo != nullptr)
 		{
 			PassVector = PlayerToPassTo->GetActorLocation() - KnownBall->GetActorLocation();
@@ -233,10 +254,10 @@ void AFootballCharacter::Pass()
 		}
 		else
 		{
-			PassVector = GetActorForwardVector();
+			PassVector = FVector(0,0,10);
 		}
 		PassVector.Normalize();
-		PassVector *= (700.0 + (ChargePercentage * (stats.Passing / 20.0 * 1800.0)));
+		PassVector *= 1200 + (stats.Passing / 20.0 * 600) + ChargePercentage * (stats.Passing / 20.0 * 2500);
 		PassVector.Z = (250 * ChargePercentage);
 		GEngine->AddOnScreenDebugMessage(-1, 100, FColor::Red, PassVector.ToString());
 		Cast<AFootball>(KnownBall)->Com_Collision->AddImpulse(PassVector, EName::None, false);
