@@ -33,28 +33,48 @@ protected:
 	void FindClosestPawn(bool isHome);
 	
 public:	
+
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
 	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
-	//
+	
 
+
+	//Important Properties
+
+	UPROPERTY(BlueprintReadOnly, Category = "Important Properties")
 	APlayerController* PC;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Important Properties")
 	UEnhancedInputLocalPlayerSubsystem* SubSystem;
 
+	UPROPERTY(BlueprintReadOnly, Category = "Important Properties")
+	AGameModeBase* CurrentGameMode;
+
+
+
+	//Important Methods
+
+	UFUNCTION()
+	void teamHasBall(bool bHome);
+
+	UFUNCTION()
+	bool IsActorBehind(AActor* actor0, AActor* actor1);
 
 
 	//Camera Properties
 
+	UPROPERTY(BlueprintReadOnly, Category = "Camera Properties")
 	AActor* SpawnedCamera;
 
 
 
-	//Input
+	//Input Context
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input Context")
 	UInputMappingContext* BaseMappingContext;
 
 
@@ -71,17 +91,23 @@ public:
 	UInputAction* PassAction;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Input Actions")
+	UInputAction* ShootAction;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Input Actions")
 	UInputAction* SprintAction;
 
 
 
-	//Input Functions
+	//Enhanced Actions
 
 	UFUNCTION()
 	void EnhancedCharge(const FInputActionValue& Value);
 
 	UFUNCTION()
 	void EnhancedMove(const FInputActionValue& Value);
+
+	UFUNCTION()
+	void EnhancedSprint(const FInputActionValue& Value);
 
 	UFUNCTION()
 	void EnhancedTackle(const FInputActionValue& Value);
@@ -92,8 +118,25 @@ public:
 	UFUNCTION()
 	void EnhancedShot(const FInputActionValue& Value);
 
+
+
+
+	//Actions Methods
+
+	UFUNCTION(BlueprintCallable)
+	void MoveBallPoint();
+
+	UFUNCTION(BlueprintCallable)
+	void Shoot();
+
+	UFUNCTION(BlueprintCallable)
+	void Pass();
+
+	UFUNCTION(BlueprintCallable)
+	void Tackle();
+
 	UFUNCTION()
-	void EnhancedSprint(const FInputActionValue& Value);
+	void MoveTowardsActor(AActor* _actor);
 
 
 
@@ -111,7 +154,7 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category = "Input Properties")
 	AActor* PlayerToPassTo;
 
-	AGameModeBase* CurrentGameMode;
+
 
 	//Montages
 
@@ -138,67 +181,59 @@ public:
 	bool bHasBall = false;
 
 	UPROPERTY(BlueprintReadWrite, Category = "Player Properties")
+	bool bTeamHasBall = false;
+
+	UPROPERTY(BlueprintReadWrite, Category = "Player Properties")
 	bool bPlaysAtHome = false;
 
 	UPROPERTY(BlueprintReadWrite, Category = "Player Properties")
 	FVector CurrentPosition;
+	
 
-
-	UFUNCTION(BlueprintCallable)
-	void Shoot();
-
-	UFUNCTION(BlueprintCallable)
-	void Pass();
-
-	UFUNCTION()
-	void ChaseBall(AActor* ball);
-
-	bool IsActorBehind(AActor* actor0, AActor* actor1);
+	
+	//Actions Booleans
+	
 	
 	UPROPERTY(BlueprintReadWrite, Category = "Boolean Override")
-	bool hasBall = false;
-	UPROPERTY(BlueprintReadWrite, Category = "Boolean Override")
 	bool needsBall = false;
+	
 	UPROPERTY(BlueprintReadWrite, Category = "Boolean Override")
 	bool isPowering = false;
 
-	//Action Booleans
-	UPROPERTY(BlueprintReadWrite, Category = "Boolean Override")
-	bool isRetarded = false;
-	UPROPERTY(BlueprintReadWrite, Category = "Boolean Override")
-	bool isTackling = false;
-	UPROPERTY(BlueprintReadWrite, Category = "Boolean Override")
-	bool isShooting = false;
-	UPROPERTY(BlueprintReadWrite, Category = "Boolean Override")
-	bool isPassing = false;
-	UPROPERTY(BlueprintReadWrite, Category = "Boolean Override")
-	bool isBeingFouled = false;
-	UPROPERTY(BlueprintReadWrite, Category = "Boolean Override")
+	UPROPERTY(BlueprintReadWrite, Category = "Action Boolean")
 	bool isChasingBall = false;
 
+
+	
+	//Character Properties
+	
 	UPROPERTY(BlueprintReadWrite, Category = "Character Properties")
 	FFootballer stats;
-
+	
 	UPROPERTY(BlueprintReadWrite, Category = "Character Properties")
 	AStadiumCamera* main_cam;
+
+	UPROPERTY(BlueprintReadWrite, Category = "Character Properties")
+	UCharacterAnimationInstance* anim_Class;	
+	
+	UPROPERTY(BlueprintReadOnly, Category = "Character Properties")
+	float stamina = 1.0f;
+	
+	UPROPERTY(BlueprintReadOnly, Category = "Character Properties")
+	FVector2D moveAxis;
 	
 
-	UPROPERTY(BlueprintReadWrite, Category = "Character Animation Properties")
-	UCharacterAnimationInstance* anim_Class;
 
-
-
-	UPROPERTY(EditAnywhere, Category = "Debug Properties")
-	FString DebugStringPosition;
-	
-
-#pragma region Components Related
+#pragma region Overlap Related
 
 	UPROPERTY(EditAnywhere)
 	class USphereComponent* BallDetectionArea;
 
 	UPROPERTY(EditAnywhere)
 	class USphereComponent* BallPosessArea;
+
+
+	//Overlaps 
 
 	UFUNCTION()
 	void OnDetectionOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
@@ -214,4 +249,6 @@ public:
 
 
 #pragma endregion
+
+
 };

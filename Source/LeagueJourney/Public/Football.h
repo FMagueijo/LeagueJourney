@@ -34,7 +34,6 @@ public:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	APawn* DaddyPawn = nullptr;
 	
-	
 
 	UPROPERTY(BlueprintReadWrite)
 	class USphereComponent* Com_Collision;
@@ -43,5 +42,18 @@ public:
 	class UStaticMeshComponent* Com_Mesh;
 	
 	FHitResult PerformRaycast();
-	
+
+	UFUNCTION()
+	void UnPossess();
+	void CheckPossession(bool _bHome, bool _bIgnore);
+
+	UFUNCTION()
+	void Shoot(FVector _direction, float _force, float _charge);
+	void Pass(AActor* _where, AActor* _from, float _force, float _charge);
+
+	UFUNCTION()
+	void FollowDaddy();
+
+	UFUNCTION()
+	void Possess(APawn* _parent);
 };

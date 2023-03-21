@@ -57,12 +57,12 @@ void AStadiumCamera::Tick(float DeltaTime)
 
 	if (isOnScreen((PC->GetPawn()) ? PC->GetPawn() : nullptr) && isOnScreen(SpawnedFootball))
 	{
-		(Com_SpringArm->TargetArmLength > 2500) ? Com_SpringArm->TargetArmLength = FMath::Lerp(Com_SpringArm->TargetArmLength, Com_SpringArm->TargetArmLength - 5, 1.f) : NULL;
+		(Com_SpringArm->TargetArmLength > 2500) ? Com_SpringArm->TargetArmLength = FMath::Lerp(Com_SpringArm->TargetArmLength, Com_SpringArm->TargetArmLength - 5, .5f) : NULL;
 	}
 	else
 	{
 
-		Com_SpringArm->TargetArmLength = FMath::Lerp(Com_SpringArm->TargetArmLength, Com_SpringArm->TargetArmLength + 5, 1.f);
+		Com_SpringArm->TargetArmLength = FMath::Lerp(Com_SpringArm->TargetArmLength, Com_SpringArm->TargetArmLength + 5, .5f);
 	}
 
 

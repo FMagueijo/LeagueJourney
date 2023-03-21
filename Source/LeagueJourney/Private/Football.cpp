@@ -5,6 +5,7 @@
 #include "FootballCharacter.h"
 #include "FootballGameMode.h"
 #include "Kismet/GameplayStatics.h"
+#include "Kismet/KismetMathLibrary.h"
 
 #include "PhysicsField/PhysicsFieldComponent.h"
 
@@ -30,15 +31,80 @@ void AFootball::BeginPlay()
 void AFootball::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-	if (bIsPosessed && DaddyPawn)
+	
+	if(DaddyPawn)
 	{
-		FVector targetLocation = DaddyPawn->GetActorLocation();
-		targetLocation += DaddyPawn->GetActorForwardVector() * 50;
-		targetLocation.Z = 10;
-		DrawDebugSphere(GetWorld(), targetLocation, 50, 16, FColor::Red);
-		SetActorLocation(targetLocation);
+		//Follow the player point
 
-		if(Cast<AFootballCharacter>(DaddyPawn)->bPlaysAtHome)
+		if(bIsPosessed)
+		{
+			FollowDaddy();
+		}
+
+		//Checks what team has the ball
+
+		CheckPossession(Cast<AFootballCharacter>(DaddyPawn)->bPlaysAtHome, false);
+
+		
+	}
+	else
+	{
+		//Checks what team has the ball
+
+		CheckPossession(false, true);
+
+	}
+	
+}
+
+void AFootball::FollowDaddy(){
+	// movetolo
+	FVector targetLocation = Cast<AFootballCharacter>(DaddyPawn)->GetMesh()->GetSocketLocation("ballSocket");
+	targetLocation += Cast<AFootballCharacter>(DaddyPawn)->GetMesh()->GetSocketLocation("ballSocket").ForwardVector * 40;
+	targetLocation.Z = 10;
+	
+	//transform.position = new Vector3(itsTarget.position.x+0.8f, 0 ,itsTarget.position.z);
+
+	SetActorLocation(targetLocation);
+	
+}
+
+void AFootball::Possess(APawn* _parent) {
+
+	DaddyPawn = _parent;
+	bIsPosessed = true;
+	Com_Collision->SetSimulatePhysics(false);
+
+	Cast<AFootballCharacter>(DaddyPawn)->bHasBall = true;
+
+	if(Cast<AFootballCharacter>(DaddyPawn)->bPlaysAtHome)
+	{
+
+		//Check if player is current
+
+		if (UGameplayStatics::GetPlayerController(GetWorld(), 0)->GetPawn() != DaddyPawn)
+		{
+			UGameplayStatics::GetPlayerController(GetWorld(), 0)->Possess(DaddyPawn);
+		}
+	}
+
+}
+
+void AFootball::UnPossess(){
+	if(bIsPosessed)
+	{
+		Cast<AFootballCharacter>(DaddyPawn)->bHasBall = false;
+		DaddyPawn = nullptr;
+		bIsPosessed = false;
+		Com_Collision->SetSimulatePhysics(true);
+	}
+}
+
+void AFootball::CheckPossession(bool _bHome, bool _bIgnore) {
+
+	if(!_bIgnore)
+	{
+		if(_bHome)
 		{
 			Cast<AFootballGameMode>(UGameplayStatics::GetGameMode(GetWorld()))->bTeamHasBallHome = true;
 			Cast<AFootballGameMode>(UGameplayStatics::GetGameMode(GetWorld()))->bTeamHasBallAway = false;
@@ -48,19 +114,52 @@ void AFootball::Tick(float DeltaTime)
 			Cast<AFootballGameMode>(UGameplayStatics::GetGameMode(GetWorld()))->bTeamHasBallHome = false;
 			Cast<AFootballGameMode>(UGameplayStatics::GetGameMode(GetWorld()))->bTeamHasBallAway = true;
 		}
-
-
-		if (UGameplayStatics::GetPlayerController(GetWorld(), 0)->GetPawn() != DaddyPawn && Cast<AFootballCharacter>(DaddyPawn)->bPlaysAtHome)
-		{
-			UGameplayStatics::GetPlayerController(GetWorld(), 0)->Possess(DaddyPawn);
-		}
 	}
 	else
 	{
 		Cast<AFootballGameMode>(UGameplayStatics::GetGameMode(GetWorld()))->bTeamHasBallHome = false;
 		Cast<AFootballGameMode>(UGameplayStatics::GetGameMode(GetWorld()))->bTeamHasBallAway = false;
 	}
-	
+
 }
 
+void AFootball::Shoot(FVector _direction, float _force, float _charge){
+	UnPossess();
+	Com_Collision->SetAllPhysicsLinearVelocity(FVector::Zero(), false);
 
+	FVector ShootVector = _direction * (1500 + (_charge * (_force / 20.0 * 2000.0)));
+	ShootVector.Z = (350.0 * _charge);
+
+	Com_Collision->AddImpulse(ShootVector, NAME_None, false);
+	Com_Collision->AddAngularImpulseInDegrees(ShootVector, NAME_None, true);
+}
+
+void AFootball::Pass(AActor* _where, AActor* _from, float _force, float _charge) {
+	UnPossess();
+	Com_Collision->SetAllPhysicsLinearVelocity(FVector::Zero(), false);
+
+	FVector PassVector;
+
+	if(_where)
+	{
+		FVector _whereTo = _where->GetActorLocation() + _where->GetVelocity();
+		PassVector = _whereTo - this->GetActorLocation();
+		FRotator lookAtPass = UKismetMathLibrary::FindLookAtRotation(_from->GetActorLocation(), _where->GetActorLocation());
+		_from->SetActorRotation(FRotator(0, lookAtPass.Yaw, 0));
+
+		if (UGameplayStatics::GetPlayerController(GetWorld(), 0)->GetPawn() != Cast<AFootballCharacter>(_where) && Cast<AFootballCharacter>(_where)->bPlaysAtHome)	
+		{
+			UGameplayStatics::GetPlayerController(GetWorld(), 0)->Possess(Cast<AFootballCharacter>(_where));
+		}
+	}
+	else
+	{
+		PassVector = _from->GetActorForwardVector();
+	}
+
+	PassVector.Normalize();
+	PassVector *= (1000 + (_charge * (_force / 20.0 * 1500.0)));
+	PassVector.Z = (150 * _charge);
+
+	Com_Collision->AddImpulse(PassVector, EName::None, false);
+}
