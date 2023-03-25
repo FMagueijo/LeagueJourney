@@ -138,6 +138,8 @@ public:
 	UFUNCTION()
 	void MoveTowardsActor(AActor* _actor);
 
+	UFUNCTION(BlueprintCallable)
+	void AddCard();
 
 
 	//Input Properties
@@ -188,7 +190,10 @@ public:
 
 	UPROPERTY(BlueprintReadWrite, Category = "Player Properties")
 	FVector CurrentPosition;
-	
+
+	UPROPERTY(BlueprintReadOnly, Category = "Player Properties")
+	int cardNumber = 0;
+
 
 	
 	//Actions Booleans

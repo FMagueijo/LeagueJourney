@@ -84,6 +84,8 @@ void AFootballGameMode::Tick(float DeltaSeconds)
 		attackPercentageHome = FMath::Clamp(attackPercentageHome -= .05 * DeltaSeconds, 0.0f, 1.0f);
 		attackPercentageAway = FMath::Clamp(attackPercentageAway -= .05 * DeltaSeconds, 0.0f, 1.0f);
 	}
+
+	
 }
 
 
@@ -104,6 +106,11 @@ void AFootballGameMode::SpawnCamera()
 	}
 }
 
+
+void AFootballGameMode::ClockLogic()
+{
+	
+}
 
 
 #pragma region Odd Methods

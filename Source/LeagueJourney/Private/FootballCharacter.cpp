@@ -292,6 +292,34 @@ void AFootballCharacter::MoveTowardsActor(AActor* _actor)
 	AddMovementInput(MoveToVector);
 }
 
+void AFootballCharacter::AddCard()
+{
+	cardNumber++;
+	if(cardNumber == 2)
+	{
+		if(bPlaysAtHome)
+		{
+			Cast<AFootballGameMode>(CurrentGameMode)->pawnElevenHome.Remove(this);
+			GEngine->AddOnScreenDebugMessage(-1, 10, FColor::Red, "Red");
+		}
+		else
+		{
+			Cast<AFootballGameMode>(CurrentGameMode)->pawnElevenHome.Remove(this);
+			GEngine->AddOnScreenDebugMessage(-1, 10, FColor::Red, "Red");
+		}
+		if(bPlaysAtHome)
+		{
+			float x = 0;
+			FindClosestPawn(bPlaysAtHome);
+			TArray<AActor*> AllTeamPlayer = (bPlaysAtHome) ? Cast<AFootballGameMode>(CurrentGameMode)->pawnElevenHome : Cast<AFootballGameMode>(CurrentGameMode)->pawnElevenAway;
+			AllTeamPlayer.Remove(this);
+			AActor* closeA = UGameplayStatics::FindNearestActor(GetActorLocation(), AllTeamPlayer, x);
+			PC->Possess(Cast<APawn>(closeA));
+		}
+		
+		Destroy();
+	}
+}
 
 
 #pragma region Global Methods

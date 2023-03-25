@@ -6,6 +6,7 @@
 #include "Engine/GameInstance.h"
 #include "FootballCommonVariables.h"
 #include "FootballMatchOptions.h"
+#include "Runtime/MoviePlayer/Public/MoviePlayer.h"
 #include "FootballMatchInstance.generated.h"
 
 /**
@@ -98,8 +99,19 @@ UCLASS()
 class LEAGUEJOURNEY_API UFootballMatchInstance : public UGameInstance
 {
 	GENERATED_BODY()
+
+private:
+	void FinishLoadLevel(const FString& _map);
+	bool startupdone = false;
 public:
 	UFootballMatchInstance();
+
+	virtual void Init() override;
+
+	UFUNCTION(BlueprintCallable)
+	virtual void BeginLoadingScreen(const FString& MapName);
+	UFUNCTION()
+	virtual void EndLoadingScreen(UWorld* InLoadedWorld);
 
 	/*
 	 * Basic Match Transport Settings
@@ -107,6 +119,10 @@ public:
 
 	TMap<FString, FVector> AllHomePositions;
 	TMap<FString, FVector> AllAwayPositions;
+	
+	
+	UPROPERTY(BlueprintReadOnly)
+	float LoadPer = 0;
 
 	UPROPERTY(BlueprintReadWrite)
 	int Difficulty = 1;

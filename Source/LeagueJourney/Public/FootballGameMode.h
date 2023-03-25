@@ -93,22 +93,32 @@ public:
 
 	//Match Properties
 
-	UPROPERTY(BlueprintReadOnly, Category = "Match Properties")
+	UPROPERTY(BlueprintReadWrite, Category = "Match Properties")
 	bool bMatchPaused = false;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Match Properties")
+	int Rate = 6;
+
 	UPROPERTY(BlueprintReadOnly, Category = "Match Properties")
+	int half = 0;
+
+	UPROPERTY(BlueprintReadWrite, Category = "Match Properties")
 	int Minutes = 0;
 
-	UPROPERTY(BlueprintReadOnly, Category = "Match Properties")
+	UPROPERTY(BlueprintReadWrite, Category = "Match Properties")
 	int AddedTime = 0;
 
-	UPROPERTY(BlueprintReadOnly, Category = "Match Properties")
+	UPROPERTY(BlueprintReadWrite, Category = "Match Properties")
 	float Seconds = 0.f;
+
+	UPROPERTY(BlueprintReadWrite, Category = "Match Properties")
+	bool FullTime= false;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Match Properties")
 	AStadiumCamera* MainCamera;
 
-
+	UFUNCTION(BlueprintCallable)
+	void ClockLogic();
 
 	//Animation
 

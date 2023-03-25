@@ -3,8 +3,11 @@
 
 #include "FootballMatchInstance.h"
 #include "Kismet/KismetRenderingLibrary.h"
+#include "Kismet/GameplayStatics.h"
 #include "ImageUtils.h"
 #include "JsonObjectConverter.h"
+
+
 
 UFootballMatchInstance::UFootballMatchInstance()
 {
@@ -51,7 +54,41 @@ UFootballMatchInstance::UFootballMatchInstance()
 	AllAwayPositions.Add("RW", FVector(-2600, -700, 10));
 }
 
-void UFootballMatchInstance::LoadFirstDB()
+ void UFootballMatchInstance::Init()
+ {
+	 Super::Init();
+	 FCoreUObjectDelegates::PreLoadMap.AddUObject(this, &UFootballMatchInstance::BeginLoadingScreen);
+	 FCoreUObjectDelegates::PostLoadMapWithWorld.AddUObject(this, &UFootballMatchInstance::EndLoadingScreen);
+ }
+
+ void UFootballMatchInstance::BeginLoadingScreen(const FString& MapName)
+ {
+
+	 if (!IsRunningDedicatedServer())
+	 {
+		 FLoadingScreenAttributes LoadingScreen;
+		 LoadingScreen.bAutoCompleteWhenLoadingCompletes = false;
+		 LoadingScreen.WidgetLoadingScreen = FLoadingScreenAttributes::NewTestLoadingScreenWidget();
+		 LoadingScreen.MinimumLoadingScreenDisplayTime = 5.f;
+		 GetMoviePlayer()->SetupLoadingScreen(LoadingScreen);
+	 }
+ }
+
+ void UFootballMatchInstance::EndLoadingScreen(UWorld* InLoadedWorld)
+ {
+	 
+ }
+
+
+
+
+ void UFootballMatchInstance::FinishLoadLevel(const FString& _map)
+ {
+	 GEngine->AddOnScreenDebugMessage(-1, 50, FColor::Red, "Done");
+
+	 UGameplayStatics::OpenLevel(this, FName(*_map));
+ }
+ void UFootballMatchInstance::LoadFirstDB()
 {
 	FString jsonFileName = "THIRDST\\Database\\Fuck.json";
 	jsonFileName = jsonFileName.Replace(TEXT("\\"), TEXT("/"));
