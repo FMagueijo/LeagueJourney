@@ -10,6 +10,7 @@
 #include "Football.h"
 #include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetMathLibrary.h"
+#include "Kismet/KismetSystemLibrary.h"
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 
@@ -52,35 +53,41 @@ void AFootballCharacter::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 
 	//Ball Dettection Condition
-
-	if(AFootballGameMode* AGM = Cast<AFootballGameMode>(CurrentGameMode))
+	if(bTeamHasBall)
 	{
-		if(AGM->SpawnedFootball)
+		if(bHasBall)
 		{
-			if(!AGM->SpawnedFootball->bIsPosessed)
-			{
-				BallDetectionArea->SetSphereRadius(BallDetectionArea->GetUnscaledSphereRadius() + 500 * DeltaTime);
-			}
-			else
-			{
-				BallDetectionArea->SetSphereRadius(FMath::Lerp(BallDetectionArea->GetUnscaledSphereRadius() + 200 * DeltaTime, 200, 0.5));
-			}
+			BallDetectionArea->SetSphereRadius(FMath::Lerp(BallDetectionArea->GetUnscaledSphereRadius(), 200, 0.5));
+		}
+		else
+		{
+			BallDetectionArea->SetSphereRadius(FMath::Lerp(BallDetectionArea->GetUnscaledSphereRadius(), 2000, 0.5));
 		}
 	}
+	else
+	{
+		BallDetectionArea->SetSphereRadius(FMath::Lerp(BallDetectionArea->GetUnscaledSphereRadius(), 1500, 0.5));
+	}
+	
 	
 	//Find Closest Team Pawn
 
 	if(PC->GetPawn() == this)
 	{
-		FindClosestPawn(bPlaysAtHome);	
+		FindClosestPawn(bPlaysAtHome);
+		if(PlayerToPassTo)
+		{
+			DrawDebugString(GetWorld(), GetActorLocation() + FVector::UpVector * 250, "Player to pass : " + PlayerToPassTo->GetName(), 0, FColor::Green, .01, false, 1);
+
+		}
+		else
+		{
+			DrawDebugString(GetWorld(), GetActorLocation() + FVector::UpVector * 250, "Player to pass : Nao existe crl", 0, FColor::Green, .01, false, 1);
+
+		}
+		
 	}
 	
-	//Move towards ball when close enough
-
-	if (!bHasBall && KnownBall != nullptr && PC->GetPawn() == this && moveAxis.Length() == 0)
-	{
-		MoveTowardsActor(KnownBall);
-	}
 	
 	//Find Closest Team Pawn + Add To Charge Percentage
 
@@ -100,9 +107,19 @@ void AFootballCharacter::Tick(float DeltaTime)
 
 	
 
-	DrawDebugString(GetWorld(), GetActorLocation(), "Has Ball : " + FString::SanitizeFloat(bHasBall), 0, FColor::Red, .01, false, 1);
+	DrawDebugString(GetWorld(), GetActorLocation(), "Wants Ball : " + FString::SanitizeFloat(bWantsBall), 0, FColor::Red, .01, false, 1);
+	DrawDebugString(GetWorld(), GetActorLocation() + FVector::UpVector*30, "Team Ball : " + FString::SanitizeFloat(bTeamHasBall), 0, FColor::Yellow, .01, false, 1);
+	DrawDebugString(GetWorld(), GetActorLocation() + FVector::UpVector*60, "Has Ball : " + FString::SanitizeFloat(bHasBall), 0, FColor::Green, .01, false, 1);
+
+	if(KnownBall)
+	{
+		idealBallCatch = GetActorLocation() + ((KnownBall->GetActorLocation() - GetActorLocation()) );
+		DrawDebugSphere(GetWorld(), idealBallCatch, 100, 16, FColor::Cyan);
+	}
+
 	//Team has ball?
 	teamHasBall(bPlaysAtHome);
+	FindClosestPawn(bPlaysAtHome);
 }
 
 
@@ -124,12 +141,13 @@ void AFootballCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputC
 
 		//One Shot Input
 
-		enhancedInputComponent->BindAction(TackleAction, ETriggerEvent::Started, this, &AFootballCharacter::EnhancedTackle);
-
+		enhancedInputComponent->BindAction(SwitchAction, ETriggerEvent::Started, this, &AFootballCharacter::EnhancedSwitch);
 
 		//Charging Inputs
 
 		enhancedInputComponent->BindAction(ShootAction, ETriggerEvent::Started, this, &AFootballCharacter::EnhancedCharge);
+
+		enhancedInputComponent->BindAction(TackleAction, ETriggerEvent::Started, this, &AFootballCharacter::EnhancedCharge);
 
 		enhancedInputComponent->BindAction(PassAction, ETriggerEvent::Started, this, &AFootballCharacter::EnhancedCharge);
 
@@ -139,6 +157,8 @@ void AFootballCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputC
 		enhancedInputComponent->BindAction(ShootAction, ETriggerEvent::Triggered, this, &AFootballCharacter::EnhancedShot);
 
 		enhancedInputComponent->BindAction(PassAction, ETriggerEvent::Triggered, this, &AFootballCharacter::EnhancedPass);
+
+		enhancedInputComponent->BindAction(TackleAction, ETriggerEvent::Triggered, this, &AFootballCharacter::EnhancedTackle);
 		
 		
 	}
@@ -187,8 +207,18 @@ void AFootballCharacter::EnhancedTackle(const FInputActionValue& Value)
 	if (!bHasBall && !bTeamHasBall && !GetMesh()->GetAnimInstance()->IsAnyMontagePlaying())
 	{
 		PlayAnimMontage(MontageTackle, 1, EName::None);
+		if (ChargePercentage >= 1 || !Value.Get<bool>())
+		{
+			bIsCharging = false;
+			PlayAnimMontage(MontageShot, 1, EName::None);
+			ChargePercentage = 0;
+		}
 	}
-	
+	else
+	{
+		bIsCharging = false;
+		ChargePercentage = 0;
+	}
 }
 
 void AFootballCharacter::EnhancedPass(const FInputActionValue& Value)
@@ -205,6 +235,21 @@ void AFootballCharacter::EnhancedPass(const FInputActionValue& Value)
 	}
 	else
 	{
+		bIsCharging = false;
+		ChargePercentage = 0;
+	}
+}
+
+void AFootballCharacter::EnhancedSwitch(const FInputActionValue& Value)
+{
+	if (!bHasBall)
+	{
+		TArray<AActor*> AllTeamPlayer = (bPlaysAtHome) ? Cast<AFootballGameMode>(CurrentGameMode)->pawnElevenHome : Cast<AFootballGameMode>(CurrentGameMode)->pawnElevenAway;
+		AllTeamPlayer.Remove(this);
+		float x;
+		AActor* _newChar = UGameplayStatics::FindNearestActor(GetActorLocation(), AllTeamPlayer, x);
+		PC->Possess(Cast<APawn>(_newChar));
+		PlayerToPassTo = nullptr;
 		bIsCharging = false;
 		ChargePercentage = 0;
 	}
@@ -234,21 +279,22 @@ void AFootballCharacter::EnhancedShot(const FInputActionValue& Value)
 
 void AFootballCharacter::Shoot()
 {
-	if (KnownBall && bHasBall)
+	if (bHasBall)
 	{
 		if(ChargePercentage == 0)
 		{
 			ChargePercentage = FMath::FRandRange(0.1, 1.0);
 		}
 
-		Cast<AFootball>(KnownBall)->Shoot(GetActorForwardVector(), stats.Shooting, ChargePercentage);
+		Cast<AFootball>(KnownBall)->Shoot(false,GetActorForwardVector(), stats.Shooting, ChargePercentage);
 	}
 	ChargePercentage = 0;
+	PlayerToPassTo = nullptr;
 }
 
 void AFootballCharacter::Pass()
 {
-	if (KnownBall && bHasBall)
+	if (bHasBall)
 	{
 		if (ChargePercentage == 0)
 		{
@@ -263,20 +309,31 @@ void AFootballCharacter::Pass()
 
 			}
 		}
+		if(PlayerToPassTo)
+		{
 
-		Cast<AFootball>(KnownBall)->Pass(PlayerToPassTo, this, stats.Passing, ChargePercentage);
+			Cast<AFootball>(KnownBall)->Pass(PlayerToPassTo, this, stats.Passing, ChargePercentage);
+		}
+		else
+		{
+
+			Cast<AFootball>(KnownBall)->Pass(nullptr, this, stats.Passing, ChargePercentage);
+		}
 
 	}
 	ChargePercentage = 0;
+	PlayerToPassTo = nullptr;
 	
 }
 
 void AFootballCharacter::Tackle()
 {
-	if(bHasBall && KnownBall)
+	if(bHasBall)
 	{
-		Cast<AFootball>(KnownBall)->Shoot(GetActorForwardVector(), 1, 1);
+		Cast<AFootball>(KnownBall)->UnPossess();
 	}
+
+	PlayerToPassTo = nullptr;
 }
 
 void AFootballCharacter::MoveBallPoint(){
@@ -326,38 +383,42 @@ void AFootballCharacter::AddCard()
 
 void AFootballCharacter::FindClosestPawn(bool isHome)
 {
-	FVector PassVector = GetActorLocation() + GetActorForwardVector() * (5000 * ChargePercentage);
-
-	DrawDebugSphere(GetWorld(), PassVector, 100, 16, FColor::Red);
-	DrawDebugSphere(GetWorld(), PassVector, 300 + ChargePercentage * (stats.Passing/20.0 * 4000), 16, FColor::Blue);
-	//DrawDebugLine(GetWorld(), GetActorLocation(), PassVector, FColor::Red, false, -1, 0, 10);
 	
+	const FVector TraceStart = GetActorLocation() + GetActorForwardVector() * (200 + ChargePercentage * (stats.Passing / 20.0 * 4000)); // Start the trace at a distance of 100 units from the player
+	const FVector BoxExtent = FVector(200 + ChargePercentage * (stats.Passing / 20.0 * 4000), 700-(ChargePercentage * (20.0 / stats.Passing * 35.0)), 200); // Set the dimensions of the box
+
+	const TArray<TEnumAsByte<EObjectTypeQuery>> ObjectTypes = { UEngineTypes::ConvertToObjectType(ECollisionChannel::ECC_Pawn) }; // Query only pawns
+	const TArray<AActor*> ActorsToIgnore = { this }; // Ignore the current player's pawn
+	TArray<FHitResult> OutHits;
+
+	const bool bTraceComplex = false;
+
 	float x = 0;
-	if(CurrentGameMode)
+
+	if(PC->GetPawn() == this)
 	{
-		TArray<AActor*> AllTeamPlayer = (isHome) ? Cast<AFootballGameMode>(CurrentGameMode)->pawnElevenHome : Cast<AFootballGameMode>(CurrentGameMode)->pawnElevenAway;
-		TArray<AActor*> RealAllTeamPlayer;
-		AllTeamPlayer.Remove(this);
+		TArray<AActor*> _allPlayers;
+		UKismetSystemLibrary::BoxTraceMultiForObjects(GetWorld(), TraceStart, TraceStart, BoxExtent, GetActorRotation(), ObjectTypes, bTraceComplex, ActorsToIgnore, EDrawDebugTrace::ForOneFrame, OutHits, true);
 
-		for (AActor* clActor : AllTeamPlayer)
+		for(FHitResult _hit : OutHits)
 		{
-
-			FVector DirectionToPlayer = clActor->GetActorLocation() - PassVector;
-			if (DirectionToPlayer.GetSafeNormal().CosineAngle2D(GetActorForwardVector()) > .9 - (ChargePercentage * .9))
+			if(Cast<AFootballCharacter>(_hit.GetActor())->bPlaysAtHome == bPlaysAtHome)
 			{
-				RealAllTeamPlayer.Add(clActor);
+				_allPlayers.Add(_hit.GetActor());
 			}
-
 		}
-
-		AActor* closeA = UGameplayStatics::FindNearestActor(PassVector, RealAllTeamPlayer, x);
-		for (AActor* clActor : RealAllTeamPlayer)
+		
+		if(bIsCharging || PC->GetPawn() != this)
 		{
-
+			if (_allPlayers.Num() > 0)
+			{
+				PlayerToPassTo = UGameplayStatics::FindNearestActor(TraceStart*2, _allPlayers, x);
+				DrawDebugSphere(GetWorld(), PlayerToPassTo->GetActorLocation(), 500, 16, FColor::Green);
+			}
+			
 		}
-
-		PlayerToPassTo = closeA;
 	}
+	
 	
 }
 
@@ -409,20 +470,18 @@ void AFootballCharacter::teamHasBall(bool bHome)
 
 void AFootballCharacter::OnDetectionOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-	if(Cast<AFootball>(OtherActor))
+	if(OtherActor == KnownBall)
 	{
-		
-		KnownBall = Cast<AFootball>(OtherActor);
+		bWantsBall = true;
 	}
 
 }
 
 void AFootballCharacter::OnDetectionOverlapEnd(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
 {
-	if (Cast<AFootball>(OtherActor))
+	if (OtherActor == KnownBall)
 	{
-		
-		KnownBall = nullptr;
+		bWantsBall = false;
 	}
 }
 

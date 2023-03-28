@@ -57,21 +57,13 @@ UFootballMatchInstance::UFootballMatchInstance()
  void UFootballMatchInstance::Init()
  {
 	 Super::Init();
-	 FCoreUObjectDelegates::PreLoadMap.AddUObject(this, &UFootballMatchInstance::BeginLoadingScreen);
-	 FCoreUObjectDelegates::PostLoadMapWithWorld.AddUObject(this, &UFootballMatchInstance::EndLoadingScreen);
+	 //FCoreUObjectDelegates::PreLoadMap.AddUObject(this, &UFootballMatchInstance::BeginLoadingScreen);
+	 //FCoreUObjectDelegates::PostLoadMapWithWorld.AddUObject(this, &UFootballMatchInstance::EndLoadingScreen);
  }
 
  void UFootballMatchInstance::BeginLoadingScreen(const FString& MapName)
  {
-
-	 if (!IsRunningDedicatedServer())
-	 {
-		 FLoadingScreenAttributes LoadingScreen;
-		 LoadingScreen.bAutoCompleteWhenLoadingCompletes = false;
-		 LoadingScreen.WidgetLoadingScreen = FLoadingScreenAttributes::NewTestLoadingScreenWidget();
-		 LoadingScreen.MinimumLoadingScreenDisplayTime = 5.f;
-		 GetMoviePlayer()->SetupLoadingScreen(LoadingScreen);
-	 }
+	 
  }
 
  void UFootballMatchInstance::EndLoadingScreen(UWorld* InLoadedWorld)

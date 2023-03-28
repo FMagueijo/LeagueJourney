@@ -150,10 +150,12 @@ void AFootballGameMode::ClockLogic()
 				NewPawn->stats = FootballerStruct;
 				NewPawn->CurrentPosition = CurrentPosition;
 				NewPawn->bPlaysAtHome = isHome;
+				NewPawn->KnownBall = SpawnedFootball;
 
-				if (animinstanceDefault && animinstanceGoalkeeper)
+				if (animinstanceDefault && animinstanceGoalkeeper && UKismetStringLibrary::EqualEqual_StriStri("GK", FootballerStruct.CurrentPosition))
 				{
-					( !UKismetStringLibrary::EqualEqual_StriStri("GK", FootballerStruct.CurrentPosition) ) ? NewPawn->GetMesh()->SetAnimClass(animinstanceDefault) : NewPawn->GetMesh()->SetAnimClass(animinstanceGoalkeeper);
+					NewPawn->GetMesh()->SetAnimClass(animinstanceGoalkeeper);
+					NewPawn->AIControllerClass = GoalkeeperAIClass;
 				}
 
 				NewPawn->FinishSpawning(T_NewPawn, false);
@@ -163,7 +165,60 @@ void AFootballGameMode::ClockLogic()
 		}
 	}
 
-	//DEBUG ONLY
+void AFootballGameMode::ReSpawn()
+{
+	if(pawnElevenHome.Num() > 0 && pawnElevenAway.Num() > 0)
+	{
+		SpawnedFootball->UnPossess();
+		SpawnedFootball->LastDaddyPawn = nullptr;
+		SpawnedFootball->Com_Collision->SetAllPhysicsLinearVelocity(FVector(0, 0, 0));
+		SpawnedFootball->Com_Collision->SetPhysicsAngularVelocityInDegrees(FVector(0, 0, 0));
+		SpawnedFootball->SetActorLocation(FVector(0, 0, 20), false, nullptr, ETeleportType::ResetPhysics);
+
+		if(UFootballMatchInstance* matchInstance = Cast<UFootballMatchInstance>(GetGameInstance()))
+		{
+			for (AActor* _pawn : pawnElevenHome)
+			{
+
+				FVector CurrentPosition = matchInstance->AllHomePositions.FindRef(Cast<AFootballCharacter>(_pawn)->stats.CurrentPosition);
+				FTransform T_NewPawn;
+
+				T_NewPawn.SetRotation(FQuat(FRotator(0, 270, 0)));
+				T_NewPawn.SetLocation(CurrentPosition);
+				
+				_pawn->SetActorTransform(T_NewPawn, false, nullptr, ETeleportType::ResetPhysics);
+			}
+
+			for (AActor* _pawn : pawnElevenAway)
+			{
+
+				FVector CurrentPosition = matchInstance->AllAwayPositions.FindRef(Cast<AFootballCharacter>(_pawn)->stats.CurrentPosition);
+				FTransform T_NewPawn;
+
+				T_NewPawn.SetRotation(FQuat(FRotator(0, 90, 0)));
+				T_NewPawn.SetLocation(CurrentPosition);
+
+				_pawn->SetActorTransform(T_NewPawn, false, nullptr, ETeleportType::ResetPhysics);
+			}
+		}
+		for (AActor* actor : pawnElevenHome)
+		{
+			if (Cast<AFootballCharacter>(actor)->stats.CurrentPosition == "ST" || Cast<AFootballCharacter>(actor)->stats.CurrentPosition == "LST" || Cast<AFootballCharacter>(actor)->stats.CurrentPosition == "RST")
+			{
+				PC->Possess(Cast<APawn>(actor));
+			}
+
+		}
+
+		if (PC->GetPawn() == nullptr)
+		{
+			PC->Possess(Cast<APawn>(pawnElevenHome[0]));
+		}
+		
+	}
+}
+
+//DEBUG ONLY
 
 	void AFootballGameMode::SpawnDebugPlayers()
 	{

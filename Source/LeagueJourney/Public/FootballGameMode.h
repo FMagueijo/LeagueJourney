@@ -33,6 +33,10 @@ protected:
 	//Functions
 	void SpawnPawn(FFootballer FootballerStruct, bool isHome);
 
+
+
+	void DeAllSpawnPawns();
+
 	void SpawnCamera();
 
 	void SpawnFootball();
@@ -114,11 +118,17 @@ public:
 	UPROPERTY(BlueprintReadWrite, Category = "Match Properties")
 	bool FullTime= false;
 
+	UPROPERTY(BlueprintReadWrite, Category = "Match Properties")
+	FVector2D MatchScore = FVector2D(0, 0);
+
 	UPROPERTY(BlueprintReadOnly, Category = "Match Properties")
 	AStadiumCamera* MainCamera;
 
 	UFUNCTION(BlueprintCallable)
 	void ClockLogic();
+
+	UFUNCTION(BlueprintCallable)
+	void ReSpawn();
 
 	//Animation
 
@@ -128,7 +138,9 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Animation Instances")
 	UClass* animinstanceDefault;
 
-
+	// AI
+	UPROPERTY(EditAnywhere, Category = "AI Class")
+	TSubclassOf<AController> GoalkeeperAIClass;
 
 	//Subclasses
 

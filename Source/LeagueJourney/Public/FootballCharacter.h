@@ -96,6 +96,8 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Input Actions")
 	UInputAction* SprintAction;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Input Actions")
+	UInputAction* SwitchAction;
 
 
 	//Enhanced Actions
@@ -114,6 +116,9 @@ public:
 
 	UFUNCTION()
 	void EnhancedPass(const FInputActionValue& Value);
+
+	UFUNCTION()
+	void EnhancedSwitch(const FInputActionValue& Value);
 
 	UFUNCTION()
 	void EnhancedShot(const FInputActionValue& Value);
@@ -186,6 +191,9 @@ public:
 	bool bTeamHasBall = false;
 
 	UPROPERTY(BlueprintReadWrite, Category = "Player Properties")
+	bool bWantsBall = false;
+
+	UPROPERTY(BlueprintReadWrite, Category = "Player Properties")
 	bool bPlaysAtHome = false;
 
 	UPROPERTY(BlueprintReadWrite, Category = "Player Properties")
@@ -220,7 +228,10 @@ public:
 
 	UPROPERTY(BlueprintReadWrite, Category = "Character Properties")
 	UCharacterAnimationInstance* anim_Class;	
-	
+
+	UPROPERTY(BlueprintReadOnly, Category = "Character Properties")
+	FVector idealBallCatch;
+
 	UPROPERTY(BlueprintReadOnly, Category = "Character Properties")
 	float stamina = 1.0f;
 	
