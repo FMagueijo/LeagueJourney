@@ -146,6 +146,8 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void AddCard();
 
+	UFUNCTION(BlueprintCallable)
+	void GetTackled();
 
 	//Input Properties
 
@@ -177,6 +179,8 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category = "Animation Properties")
 	UAnimMontage* MontagePossession;
 
+	UPROPERTY(EditDefaultsOnly, Category = "Animation Properties")
+	UAnimMontage* MontageTackled;
 
 
 	//Player Properties

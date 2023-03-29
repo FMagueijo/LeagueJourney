@@ -10,7 +10,8 @@
 
 AFootballGameMode::AFootballGameMode()
 {
-	
+	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
+	PrimaryActorTick.bCanEverTick = true;
 }
 
 void AFootballGameMode::BeginPlay()
@@ -76,13 +77,14 @@ void AFootballGameMode::Tick(float DeltaSeconds)
 	}
 	else if(bTeamHasBallAway)
 	{
-		attackPercentageHome = FMath::Clamp(attackPercentageHome -= .5 * DeltaSeconds, 0.0f, 1.0f);
-		attackPercentageAway = FMath::Clamp(attackPercentageAway += .15 * DeltaSeconds, 0.0f, 1.0f);
+
+		attackPercentageHome = FMath::Clamp(attackPercentageHome -= .5 * DeltaSeconds, 0.0f, 2.3f);
+		attackPercentageAway = FMath::Clamp(attackPercentageAway += .15 * DeltaSeconds, 0.0f, 2.3f);
 	}
 	else
 	{
-		attackPercentageHome = FMath::Clamp(attackPercentageHome -= .05 * DeltaSeconds, 0.0f, 1.0f);
-		attackPercentageAway = FMath::Clamp(attackPercentageAway -= .05 * DeltaSeconds, 0.0f, 1.0f);
+		attackPercentageHome = FMath::Clamp(attackPercentageHome -= .05 * DeltaSeconds, 0.0f, 2.3f);
+		attackPercentageAway = FMath::Clamp(attackPercentageAway -= .05 * DeltaSeconds, 0.0f, 2.3f);
 	}
 
 	

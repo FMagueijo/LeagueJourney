@@ -82,7 +82,7 @@ UFootballMatchInstance::UFootballMatchInstance()
  }
  void UFootballMatchInstance::LoadFirstDB()
 {
-	FString jsonFileName = "THIRDST\\Database\\Fuck.json";
+	FString jsonFileName = "THIRDST\\Database\\DB.json";
 	jsonFileName = jsonFileName.Replace(TEXT("\\"), TEXT("/"));
 	FString FullPath = FPlatformProcess::UserDir() + jsonFileName;
 

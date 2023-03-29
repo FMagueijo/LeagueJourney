@@ -99,8 +99,8 @@ void AFootballCharacter::Tick(float DeltaTime)
 
 	//Decrement Stamina depending on player stats
 
-	if(moveAxis.Length() > 0){
-		stamina = FMath::Clamp(stamina -= (.005f + (1.0f / stats.Stamina) * .015f) * DeltaTime, 0.0f, 1.0f);
+	if(GetVelocity().Length() > 0){
+		stamina = FMath::Clamp(stamina -= (.005f + (1.0f / stats.Stamina) * .005f) * DeltaTime, 0.0f, 1.0f);
 		DrawDebugString(GetWorld(), GetActorLocation(), "Current Stamina = " + FString::SanitizeFloat(stamina), 0, FColor::Yellow, .01, false, 2);
 
 	}
@@ -143,11 +143,11 @@ void AFootballCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputC
 
 		enhancedInputComponent->BindAction(SwitchAction, ETriggerEvent::Started, this, &AFootballCharacter::EnhancedSwitch);
 
+		enhancedInputComponent->BindAction(TackleAction, ETriggerEvent::Started, this, &AFootballCharacter::EnhancedTackle);
+
 		//Charging Inputs
 
 		enhancedInputComponent->BindAction(ShootAction, ETriggerEvent::Started, this, &AFootballCharacter::EnhancedCharge);
-
-		enhancedInputComponent->BindAction(TackleAction, ETriggerEvent::Started, this, &AFootballCharacter::EnhancedCharge);
 
 		enhancedInputComponent->BindAction(PassAction, ETriggerEvent::Started, this, &AFootballCharacter::EnhancedCharge);
 
@@ -158,8 +158,7 @@ void AFootballCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputC
 
 		enhancedInputComponent->BindAction(PassAction, ETriggerEvent::Triggered, this, &AFootballCharacter::EnhancedPass);
 
-		enhancedInputComponent->BindAction(TackleAction, ETriggerEvent::Triggered, this, &AFootballCharacter::EnhancedTackle);
-		
+
 		
 	}
 
@@ -193,7 +192,7 @@ void AFootballCharacter::EnhancedMove(const FInputActionValue& Value)
 		FVector FinalValue = (SpawnedCamera != nullptr) ? Cast<AStadiumCamera>(SpawnedCamera)->Com_Camera->GetForwardVector() * CurrentValue.Y + Cast<AStadiumCamera>(SpawnedCamera)->Com_Camera->GetRightVector() * CurrentValue.X : CurrentPosition;
 		FinalValue.Z = 0;
 
-		GetCharacterMovement()->MaxWalkSpeed = (FinalValue.Length() > .8) ? (300.0 + stats.Pace / 20.0 * 100.0) + (SprintPercentage * (stats.Pace / 20.0 * 350.0)) : 300;
+		GetCharacterMovement()->MaxWalkSpeed = (FinalValue.Length() > .8) ? 300.0 + stamina * ((stats.Pace / 20.0 * 100.0) + (SprintPercentage * (stats.Pace / 20.0 * 350.0))) : 300;
 		GetCharacterMovement()->RotationRate = (FinalValue.Length() > .8) ? FRotator(0, 180 + SprintPercentage * 180, 0) : FRotator::ZeroRotator;
 
 
@@ -211,13 +210,7 @@ void AFootballCharacter::EnhancedTackle(const FInputActionValue& Value)
 		{
 			bIsCharging = false;
 			PlayAnimMontage(MontageShot, 1, EName::None);
-			ChargePercentage = 0;
 		}
-	}
-	else
-	{
-		bIsCharging = false;
-		ChargePercentage = 0;
 	}
 }
 
@@ -230,14 +223,13 @@ void AFootballCharacter::EnhancedPass(const FInputActionValue& Value)
 		{
 			bIsCharging = false;
 			PlayAnimMontage(MontagePass, 1, EName::None);
-			ChargePercentage = 0;
 		}
 	}
 	else
 	{
 		bIsCharging = false;
-		ChargePercentage = 0;
 	}
+
 }
 
 void AFootballCharacter::EnhancedSwitch(const FInputActionValue& Value)
@@ -247,7 +239,7 @@ void AFootballCharacter::EnhancedSwitch(const FInputActionValue& Value)
 		TArray<AActor*> AllTeamPlayer = (bPlaysAtHome) ? Cast<AFootballGameMode>(CurrentGameMode)->pawnElevenHome : Cast<AFootballGameMode>(CurrentGameMode)->pawnElevenAway;
 		AllTeamPlayer.Remove(this);
 		float x;
-		AActor* _newChar = UGameplayStatics::FindNearestActor(GetActorLocation(), AllTeamPlayer, x);
+		AActor* _newChar = UGameplayStatics::FindNearestActor(KnownBall->GetActorLocation(), AllTeamPlayer, x);
 		PC->Possess(Cast<APawn>(_newChar));
 		PlayerToPassTo = nullptr;
 		bIsCharging = false;
@@ -263,13 +255,11 @@ void AFootballCharacter::EnhancedShot(const FInputActionValue& Value)
 		{
 			bIsCharging = false;
 			PlayAnimMontage(MontageShot, 1, EName::None);
-			ChargePercentage = 0;
 		}
 	}
 	else
 	{
 		bIsCharging = false;
-		ChargePercentage = 0;
 	}
 }
 
@@ -284,53 +274,86 @@ void AFootballCharacter::Shoot()
 		if(ChargePercentage == 0)
 		{
 			ChargePercentage = FMath::FRandRange(0.1, 1.0);
+			TArray<AActor*> _targets;
+			UGameplayStatics::GetAllActorsWithTag(GetWorld(), "homeTarget", _targets);
+			Cast<AFootball>(KnownBall)->Shoot(false, _targets[FMath::RandRange(0, _targets.Num()-1)]->GetActorLocation()-GetActorLocation(), stats.Shooting, ChargePercentage);
 		}
-
-		Cast<AFootball>(KnownBall)->Shoot(false,GetActorForwardVector(), stats.Shooting, ChargePercentage);
+		else
+		{
+			Cast<AFootball>(KnownBall)->Shoot(false, GetActorForwardVector(), stats.Shooting, ChargePercentage);
+		}
 	}
-	ChargePercentage = 0;
-	PlayerToPassTo = nullptr;
+
 }
 
 void AFootballCharacter::Pass()
 {
 	if (bHasBall)
 	{
-		if (ChargePercentage == 0)
+		if (ChargePercentage == 0 || PlayerToPassTo == nullptr)
 		{
 			ChargePercentage = FMath::FRandRange(0.1, 1.0);
-			FindClosestPawn(bPlaysAtHome);
-			if (PlayerToPassTo == nullptr)
+			TArray<AActor*> AllTeamPlayer = (bPlaysAtHome) ? Cast<AFootballGameMode>(CurrentGameMode)->pawnElevenHome : Cast<AFootballGameMode>(CurrentGameMode)->pawnElevenAway;
+			AllTeamPlayer.Remove(this);
+			float x;
+			
+			if (FMath::RandRange(0.0, 1.0) > 50)
 			{
-				TArray<AActor*> AllTeamPlayer = (bPlaysAtHome) ? Cast<AFootballGameMode>(CurrentGameMode)->pawnElevenHome : Cast<AFootballGameMode>(CurrentGameMode)->pawnElevenAway;
-				AllTeamPlayer.Remove(this);
-				float x;
-				PlayerToPassTo = UGameplayStatics::FindNearestActor(GetActorLocation(), AllTeamPlayer, x);
 
+				PlayerToPassTo = AllTeamPlayer[FMath::RandRange(0, AllTeamPlayer.Num() - 1)];
+			}
+			else
+			{
+				PlayerToPassTo = UGameplayStatics::FindNearestActor(GetActorLocation(), AllTeamPlayer, x);
 			}
 		}
-		if(PlayerToPassTo)
-		{
 
-			Cast<AFootball>(KnownBall)->Pass(PlayerToPassTo, this, stats.Passing, ChargePercentage);
-		}
-		else
-		{
-
-			Cast<AFootball>(KnownBall)->Pass(nullptr, this, stats.Passing, ChargePercentage);
-		}
+		Cast<AFootball>(KnownBall)->Pass(PlayerToPassTo, this, stats.Passing, ChargePercentage);
 
 	}
-	ChargePercentage = 0;
-	PlayerToPassTo = nullptr;
 	
 }
 
 void AFootballCharacter::Tackle()
 {
-	if(bHasBall)
+	if(!bHasBall)
 	{
-		Cast<AFootball>(KnownBall)->UnPossess();
+		
+		const TArray<TEnumAsByte<EObjectTypeQuery>> ObjectTypes = { UEngineTypes::ConvertToObjectType(ECollisionChannel::ECC_Pawn) }; // Query only pawns
+		const TArray<AActor*> ActorsToIgnore = { this }; // Ignore the current player's pawn
+		FHitResult OutHit;
+		UKismetSystemLibrary::SphereTraceSingleForObjects(GetWorld(), GetMesh()->GetSocketLocation("ballSocket"), GetMesh()->GetSocketLocation("ballSocket"), 150.0 + stats.Defending / 20.0 * 300.0, ObjectTypes, false, ActorsToIgnore, EDrawDebugTrace::ForOneFrame, OutHit, true);
+
+		if(AFootballCharacter* _char = Cast<AFootballCharacter>(OutHit.GetActor()))
+		{
+			if(_char->bPlaysAtHome != bPlaysAtHome)
+			{
+				if (FMath::RandRange(0.0, 1.0) > _char->stats.Defending * 0.01)
+				{
+					//This will find if he has ball and play his fall animation
+
+					_char->GetTackled();
+
+					//Add card
+
+					if (FMath::RandRange(0.0, 1.0) > stats.Defending * 0.045 || !_char->bHasBall)
+					{
+						AddCard();
+					}
+					else
+					{
+						// Rob football
+
+						if (FMath::RandRange(0.0, 1.0) <= stats.Defending * 0.025)
+						{
+							KnownBall->Possess(this);
+						}
+					}
+				}
+			}
+			
+			
+		}
 	}
 
 	PlayerToPassTo = nullptr;
@@ -352,6 +375,8 @@ void AFootballCharacter::MoveTowardsActor(AActor* _actor)
 void AFootballCharacter::AddCard()
 {
 	cardNumber++;
+	GEngine->AddOnScreenDebugMessage(-1, 10, FColor::Red, "Yellow");
+
 	if(cardNumber == 2)
 	{
 		if(bPlaysAtHome)
@@ -378,6 +403,16 @@ void AFootballCharacter::AddCard()
 	}
 }
 
+void AFootballCharacter::GetTackled()
+{
+	if (bHasBall)
+	{
+		KnownBall->UnPossess();
+	}
+	bIsCharging = false;
+	PlayAnimMontage(MontageTackled, .75, EName::None);
+}
+
 
 #pragma region Global Methods
 
@@ -385,7 +420,7 @@ void AFootballCharacter::FindClosestPawn(bool isHome)
 {
 	
 	const FVector TraceStart = GetActorLocation() + GetActorForwardVector() * (200 + ChargePercentage * (stats.Passing / 20.0 * 4000)); // Start the trace at a distance of 100 units from the player
-	const FVector BoxExtent = FVector(200 + ChargePercentage * (stats.Passing / 20.0 * 4000), 700-(ChargePercentage * (20.0 / stats.Passing * 35.0)), 200); // Set the dimensions of the box
+	const FVector BoxExtent = FVector(200 + ChargePercentage * (stats.Passing / 20.0 * 4000), 600-(ChargePercentage * (20.0 / stats.Passing * 25.0)), 200); // Set the dimensions of the box
 
 	const TArray<TEnumAsByte<EObjectTypeQuery>> ObjectTypes = { UEngineTypes::ConvertToObjectType(ECollisionChannel::ECC_Pawn) }; // Query only pawns
 	const TArray<AActor*> ActorsToIgnore = { this }; // Ignore the current player's pawn
@@ -498,16 +533,7 @@ void AFootballCharacter::OnPosessOverlapBegin(UPrimitiveComponent* OverlappedCom
 			{
 				Cast<AFootball>(OtherActor)->Possess(this);
 			}
-
-			if(!bPlaysAtHome)
-			{
-				float x = 0;
-				AActor* ClosestPawn = UGameplayStatics::FindNearestActor(GetActorLocation(), Cast<AFootballGameMode>(CurrentGameMode)->pawnElevenHome, x);
-				if(PC->GetPawn() != ClosestPawn)
-				{
-					PC->Possess(Cast<APawn>(ClosestPawn));
-				}
-			}
+			
 		}
 	}
 }
@@ -521,15 +547,6 @@ void AFootballCharacter::OnPosessOverlapEnd(UPrimitiveComponent* OverlappedComp,
 		{
 			Cast<AFootball>(OtherActor)->UnPossess();
 			
-			if (!bPlaysAtHome)
-			{
-				float x = 0;
-				AActor* ClosestPawn = UGameplayStatics::FindNearestActor(GetActorLocation(), Cast<AFootballGameMode>(CurrentGameMode)->pawnElevenHome, x);
-				if (PC->GetPawn() != ClosestPawn)
-				{
-					PC->Possess(Cast<APawn>(ClosestPawn));
-				}
-			}
 		}
 	}
 }

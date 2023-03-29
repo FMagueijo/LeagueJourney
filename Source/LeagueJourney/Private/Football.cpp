@@ -6,7 +6,6 @@
 #include "FootballGameMode.h"
 #include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetMathLibrary.h"
-#include "AIController.h"
 #include "PhysicsField/PhysicsFieldComponent.h"
 
 // Sets default values
@@ -95,6 +94,8 @@ void AFootball::UnPossess(){
 	{
 
 		Cast<AFootballCharacter>(DaddyPawn)->bHasBall = false;
+		Cast<AFootballCharacter>(DaddyPawn)->ChargePercentage = 0;
+		Cast<AFootballCharacter>(DaddyPawn)->PlayerToPassTo = nullptr;
 		LastDaddyPawn = DaddyPawn;
 		DaddyPawn = nullptr;
 		bIsPosessed = false;
@@ -132,10 +133,11 @@ void AFootball::Shoot(bool _chip, FVector _direction, float _force, float _charg
 	{
 		
 	}
+	_direction.Normalize();
 	Com_Collision->SetAllPhysicsLinearVelocity(FVector::Zero(), false);
 
-	FVector ShootVector = _direction * (1500 + (_charge * (_force / 20.0 * 2000.0)));
-	ShootVector.Z = (350.0 * _charge);
+	FVector ShootVector = _direction * (1500.0 + (_charge * (_force / 20.0 * 2000.0)));
+	ShootVector.Z = (400.0 * _charge);
 
 	Com_Collision->AddImpulse(ShootVector, NAME_None, false);
 	Com_Collision->AddAngularImpulseInDegrees(ShootVector, NAME_None, true);

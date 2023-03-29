@@ -45,8 +45,9 @@ public:
 	
 	FHitResult PerformRaycast();
 
-	UFUNCTION()
+	UFUNCTION(BlueprintCallable)
 	void UnPossess();
+
 	void CheckPossession(bool _bHome, bool _bIgnore);
 
 	UFUNCTION()
@@ -56,6 +57,6 @@ public:
 	UFUNCTION()
 	void FollowDaddy();
 
-	UFUNCTION()
+	UFUNCTION(BlueprintCallable)
 	void Possess(APawn* _parent);
 };
