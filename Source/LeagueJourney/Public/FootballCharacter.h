@@ -206,7 +206,10 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category = "Player Properties")
 	int cardNumber = 0;
 
+	UPROPERTY(BlueprintReadOnly, Category = "Player Properties")
+	float coverageDistance = 1000.0;
 
+	TArray<AActor*> teamColleagues;
 	
 	//Actions Booleans
 	

@@ -32,9 +32,10 @@ void AFootballCharacter::BeginPlay()
 
 	BallDetectionArea->AttachToComponent(GetCapsuleComponent(), FAttachmentTransformRules::SnapToTargetIncludingScale);
 	BallPosessArea->AttachToComponent(GetCapsuleComponent(), FAttachmentTransformRules::SnapToTargetIncludingScale);
-	BallDetectionArea->OnComponentBeginOverlap.AddDynamic(this, &AFootballCharacter::OnDetectionOverlapBegin);
-	BallDetectionArea->OnComponentEndOverlap.AddDynamic(this, &AFootballCharacter::OnDetectionOverlapEnd);
+
+
 	BallPosessArea->OnComponentBeginOverlap.AddDynamic(this, &AFootballCharacter::OnPosessOverlapBegin);
+
 	if(APlayerController* _PC = Cast<AFootballerController>(UGameplayStatics::GetPlayerController(GetWorld(), 0)))
 	{
 		PC = _PC;
@@ -43,7 +44,22 @@ void AFootballCharacter::BeginPlay()
 			_Subsystem->AddMappingContext(BaseMappingContext, 5);
 		}
 	}
-	
+
+
+	//Set default values
+
+	coverageDistance = stats.Defending / 20.0 * 1500;
+
+	TArray<AActor*> _allColleagues;
+	UGameplayStatics::GetAllActorsOfClass(GetWorld(), AFootballCharacter::StaticClass(), _allColleagues);
+	for(AActor* _footballer : _allColleagues)
+	{
+		if(Cast<AFootballCharacter>(_footballer)->bPlaysAtHome == bPlaysAtHome)
+		{
+			teamColleagues.Add(Cast<AFootballCharacter>(_footballer));
+		}
+	}
+
 }
 
 
@@ -52,42 +68,13 @@ void AFootballCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	//Ball Dettection Condition
-	if(bTeamHasBall)
-	{
-		if(bHasBall)
-		{
-			BallDetectionArea->SetSphereRadius(FMath::Lerp(BallDetectionArea->GetUnscaledSphereRadius(), 200, 0.5));
-		}
-		else
-		{
-			BallDetectionArea->SetSphereRadius(FMath::Lerp(BallDetectionArea->GetUnscaledSphereRadius(), 2000, 0.5));
-		}
-	}
-	else
-	{
-		BallDetectionArea->SetSphereRadius(FMath::Lerp(BallDetectionArea->GetUnscaledSphereRadius(), 1500, 0.5));
-	}
-	
-	
-	//Find Closest Team Pawn
 
-	if(PC->GetPawn() == this)
+	if(KnownBall)
 	{
-		FindClosestPawn(bPlaysAtHome);
-		if(PlayerToPassTo)
-		{
-			DrawDebugString(GetWorld(), GetActorLocation() + FVector::UpVector * 250, "Player to pass : " + PlayerToPassTo->GetName(), 0, FColor::Green, .01, false, 1);
+		//Ball Detection Check
 
-		}
-		else
-		{
-			DrawDebugString(GetWorld(), GetActorLocation() + FVector::UpVector * 250, "Player to pass : Nao existe crl", 0, FColor::Green, .01, false, 1);
-
-		}
-		
+		bWantsBall = (FVector::Distance(KnownBall->GetActorLocation(), GetActorLocation()) <= 1000 + coverageDistance * ((bTeamHasBall) ? 1 : 0));
 	}
-	
 	
 	//Find Closest Team Pawn + Add To Charge Percentage
 
@@ -110,16 +97,10 @@ void AFootballCharacter::Tick(float DeltaTime)
 	DrawDebugString(GetWorld(), GetActorLocation(), "Wants Ball : " + FString::SanitizeFloat(bWantsBall), 0, FColor::Red, .01, false, 1);
 	DrawDebugString(GetWorld(), GetActorLocation() + FVector::UpVector*30, "Team Ball : " + FString::SanitizeFloat(bTeamHasBall), 0, FColor::Yellow, .01, false, 1);
 	DrawDebugString(GetWorld(), GetActorLocation() + FVector::UpVector*60, "Has Ball : " + FString::SanitizeFloat(bHasBall), 0, FColor::Green, .01, false, 1);
-
-	if(KnownBall)
-	{
-		idealBallCatch = GetActorLocation() + ((KnownBall->GetActorLocation() - GetActorLocation()) );
-		DrawDebugSphere(GetWorld(), idealBallCatch, 100, 16, FColor::Cyan);
-	}
+	
 
 	//Team has ball?
 	teamHasBall(bPlaysAtHome);
-	FindClosestPawn(bPlaysAtHome);
 }
 
 
@@ -392,7 +373,7 @@ void AFootballCharacter::AddCard()
 		if(bPlaysAtHome)
 		{
 			float x = 0;
-			FindClosestPawn(bPlaysAtHome);
+
 			TArray<AActor*> AllTeamPlayer = (bPlaysAtHome) ? Cast<AFootballGameMode>(CurrentGameMode)->pawnElevenHome : Cast<AFootballGameMode>(CurrentGameMode)->pawnElevenAway;
 			AllTeamPlayer.Remove(this);
 			AActor* closeA = UGameplayStatics::FindNearestActor(GetActorLocation(), AllTeamPlayer, x);
@@ -419,40 +400,90 @@ void AFootballCharacter::GetTackled()
 void AFootballCharacter::FindClosestPawn(bool isHome)
 {
 	
-	const FVector TraceStart = GetActorLocation() + GetActorForwardVector() * (200 + ChargePercentage * (stats.Passing / 20.0 * 4000)); // Start the trace at a distance of 100 units from the player
-	const FVector BoxExtent = FVector(200 + ChargePercentage * (stats.Passing / 20.0 * 4000), 600-(ChargePercentage * (20.0 / stats.Passing * 25.0)), 200); // Set the dimensions of the box
-
-	const TArray<TEnumAsByte<EObjectTypeQuery>> ObjectTypes = { UEngineTypes::ConvertToObjectType(ECollisionChannel::ECC_Pawn) }; // Query only pawns
-	const TArray<AActor*> ActorsToIgnore = { this }; // Ignore the current player's pawn
-	TArray<FHitResult> OutHits;
-
-	const bool bTraceComplex = false;
-
-	float x = 0;
-
-	if(PC->GetPawn() == this)
+	if (PC->GetPawn() == this)
 	{
-		TArray<AActor*> _allPlayers;
-		UKismetSystemLibrary::BoxTraceMultiForObjects(GetWorld(), TraceStart, TraceStart, BoxExtent, GetActorRotation(), ObjectTypes, bTraceComplex, ActorsToIgnore, EDrawDebugTrace::ForOneFrame, OutHits, true);
+		const FVector TraceStart = GetActorLocation() + GetActorForwardVector() * (200 + ChargePercentage * (stats.Passing / 20.0 * 4000)); // Start the trace at a distance of 100 units from the player
+		const FVector BoxExtent = FVector(200 + ChargePercentage * (stats.Passing / 20.0 * 4000), 600 - (ChargePercentage * (20.0 / stats.Passing * 25.0)), 200); // Set the dimensions of the box
 
-		for(FHitResult _hit : OutHits)
+		const TArray<TEnumAsByte<EObjectTypeQuery>> ObjectTypes = { UEngineTypes::ConvertToObjectType(ECollisionChannel::ECC_Pawn) }; // Query only pawns
+		const TArray<AActor*> ActorsToIgnore = { this }; // Ignore the current player's pawn
+
+		TArray<FHitResult> OutHits;
+
+		TArray<AActor*> _allPlayers;
+		UKismetSystemLibrary::BoxTraceMultiForObjects(GetWorld(), TraceStart, TraceStart, BoxExtent, GetActorRotation(), ObjectTypes, false, ActorsToIgnore, EDrawDebugTrace::ForOneFrame, OutHits, true);
+		
+
+		for (FHitResult _hit : OutHits)
 		{
-			if(Cast<AFootballCharacter>(_hit.GetActor())->bPlaysAtHome == bPlaysAtHome)
+			if (Cast<AFootballCharacter>(_hit.GetActor())->bPlaysAtHome == bPlaysAtHome)
 			{
 				_allPlayers.Add(_hit.GetActor());
 			}
 		}
-		
-		if(bIsCharging || PC->GetPawn() != this)
+
+		if (_allPlayers.Num() > 0)
 		{
-			if (_allPlayers.Num() > 0)
+			float x = 0;
+			PlayerToPassTo = UGameplayStatics::FindNearestActor(TraceStart * 2, _allPlayers, x);
+			DrawDebugSphere(GetWorld(), PlayerToPassTo->GetActorLocation(), 500, 16, FColor::Green);
+		}
+	}
+	else
+	{
+		TArray<AActor*> _attackingColleagues;
+		TArray<AActor*> _defendingColleagues;
+
+		for (AActor* _footballer : teamColleagues)
+		{
+			if (_footballer->GetActorLocation().Y >= GetActorLocation().Y)
 			{
-				PlayerToPassTo = UGameplayStatics::FindNearestActor(TraceStart*2, _allPlayers, x);
-				DrawDebugSphere(GetWorld(), PlayerToPassTo->GetActorLocation(), 500, 16, FColor::Green);
+				_attackingColleagues.Add(_footballer);
+			}
+			else
+			{
+				_defendingColleagues.Add(_footballer);
+			}
+		}
+
+		AActor* _currentNearest;
+		float distance = 0;
+		float _perAttack = FMath::RandRange(0.0, 1.0);
+		float _perShort = FMath::RandRange(0.0, 1.0);
+
+		if(_perAttack >= .4)
+		{
+			if (_attackingColleagues.Num() > 0)
+			{
+				_currentNearest = (_perShort >= .5) ? UGameplayStatics::FindNearestActor(GetActorLocation(), _attackingColleagues, distance) : _attackingColleagues[FMath::RandRange(0, _attackingColleagues.Num()-1)];
+			}
+			else
+			{
+				_currentNearest = UGameplayStatics::FindNearestActor(GetActorLocation(), teamColleagues, distance);
 			}
 			
 		}
+		else
+		{
+			if (_defendingColleagues.Num() > 0)
+			{
+				_currentNearest = (_perShort >= .5) ? UGameplayStatics::FindNearestActor(GetActorLocation(), _defendingColleagues, distance) : _defendingColleagues[FMath::RandRange(0, _defendingColleagues.Num() - 1)];
+			}
+			else
+			{
+				_currentNearest = UGameplayStatics::FindNearestActor(GetActorLocation(), teamColleagues, distance);
+			}
+		}
+
+		if(_currentNearest == nullptr)
+		{
+			_currentNearest = UGameplayStatics::FindNearestActor(GetActorLocation(), teamColleagues, distance);
+		}
+
+		PlayerToPassTo =  _currentNearest;
 	}
+
+	
 	
 	
 }

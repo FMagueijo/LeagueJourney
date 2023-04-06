@@ -47,17 +47,24 @@ void AFootballGameMode::BeginPlay()
 	PC = UGameplayStatics::GetPlayerController(GetWorld(), 0);
 	for(AActor* actor : pawnElevenHome)
 	{
-		if(Cast<AFootballCharacter>(actor)->stats.CurrentPosition == "ST" || Cast<AFootballCharacter>(actor)->stats.CurrentPosition == "LST" || Cast<AFootballCharacter>(actor)->stats.CurrentPosition == "RST")
+		if(Cast<AFootballCharacter>(actor)->stats.CurrentPosition == "ST")
 		{
 			PC->Possess(Cast<APawn>(actor));
 		}
-
+		else
+		{
+			if(Cast<AFootballCharacter>(actor)->stats.CurrentPosition == "LST" || Cast<AFootballCharacter>(actor)->stats.CurrentPosition == "RST")
+			{
+				PC->Possess(Cast<APawn>(actor));
+			}
+		}
 	}
 
 	if(PC->GetPawn() == nullptr)
 	{
 		PC->Possess(Cast<APawn>(pawnElevenHome[0]));
 	}
+	PC->GetPawn()->Controller = PC;
 }
 
 void AFootballGameMode::Tick(float DeltaSeconds)
@@ -216,7 +223,8 @@ void AFootballGameMode::ReSpawn()
 		{
 			PC->Possess(Cast<APawn>(pawnElevenHome[0]));
 		}
-		
+		attackPercentageHome = 0;
+		attackPercentageAway = 0;
 	}
 }
 
