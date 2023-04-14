@@ -70,6 +70,8 @@ void AFootball::FollowDaddy(){
 
 void AFootball::Possess(APawn* _parent) {
 
+	UnPossess();
+
 	DaddyPawn = _parent;
 	bIsPosessed = true;
 	Com_Collision->SetSimulatePhysics(false);
@@ -147,25 +149,28 @@ void AFootball::Pass(AActor* _where, AActor* _from, float _force, float _charge)
 	UnPossess();
 	Com_Collision->SetAllPhysicsLinearVelocity(FVector::Zero(), false);
 
-	FVector PassVector;
+	FVector Predicted_Position;
+	float ballSpeed = 2500.0 + _charge * (_force/20 * 2000.0);
 
 	if(_where)
 	{
-		FVector direction = (_where->GetActorLocation() - _from->GetActorLocation()).GetSafeNormal();
-		float passingSpeed = 400.f;
-		float passingVelocity = passingSpeed * _force * _charge;
-		FVector velocity = direction * passingVelocity;
-		float errorMargin = FMath::RandRange(0.0f, 20.0f);
-		FVector errorDirection = FMath::VRand();
-		FVector errorOffset = errorDirection * errorMargin;
-		velocity += errorOffset;
-		
 
-		Com_Collision->AddImpulse(velocity, NAME_None, true);
+		float Distance = FVector::Distance(_where->GetActorLocation(), GetActorLocation());
+		float Time = Distance / ballSpeed;
+		Predicted_Position = _where->GetActorLocation() + (_where->GetVelocity() * Time);
+
+		DrawDebugSphere(GetWorld(), Predicted_Position, 50, 16, FColor::Red,false, 15, 0, 20);
+		DrawDebugSphere(GetWorld(), _where->GetActorLocation(), 50, 16, FColor::Green,false, 15, 0, 20);
+		DrawDebugDirectionalArrow(GetWorld(), _where->GetActorLocation(), Predicted_Position, 50, FColor::Blue, false, 15, 0, 20);
+
+		FVector direction = (Predicted_Position - GetActorLocation()).GetSafeNormal();
+		direction *= ballSpeed;
+		
+		Com_Collision->AddImpulse(direction, NAME_None, true);
 	}
 	else
 	{
-		PassVector = _from->GetActorForwardVector() * (400.0 * _force * _charge);
+		
 	}
 
 

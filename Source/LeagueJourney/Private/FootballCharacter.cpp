@@ -59,6 +59,7 @@ void AFootballCharacter::BeginPlay()
 			teamColleagues.Add(Cast<AFootballCharacter>(_footballer));
 		}
 	}
+	teamColleagues.Remove(this);
 
 }
 
@@ -173,7 +174,7 @@ void AFootballCharacter::EnhancedMove(const FInputActionValue& Value)
 		FVector FinalValue = (SpawnedCamera != nullptr) ? Cast<AStadiumCamera>(SpawnedCamera)->Com_Camera->GetForwardVector() * CurrentValue.Y + Cast<AStadiumCamera>(SpawnedCamera)->Com_Camera->GetRightVector() * CurrentValue.X : CurrentPosition;
 		FinalValue.Z = 0;
 
-		GetCharacterMovement()->MaxWalkSpeed = (FinalValue.Length() > .8) ? 300.0 + stamina * ((stats.Pace / 20.0 * 100.0) + (SprintPercentage * (stats.Pace / 20.0 * 350.0))) : 300;
+		GetCharacterMovement()->MaxWalkSpeed = (FinalValue.Length() > .8) ? 300.0 + stamina * (SprintPercentage * (stats.Pace / 20.0 * 250.0)) : 300;
 		GetCharacterMovement()->RotationRate = (FinalValue.Length() > .8) ? FRotator(0, 180 + SprintPercentage * 180, 0) : FRotator::ZeroRotator;
 
 
@@ -307,28 +308,45 @@ void AFootballCharacter::Tackle()
 
 		if(AFootballCharacter* _char = Cast<AFootballCharacter>(OutHit.GetActor()))
 		{
+			//Doesnt play in the same team
 			if(_char->bPlaysAtHome != bPlaysAtHome)
 			{
+				//base value of 20% successful tackle
+				if(FMath::FRandRange(0.0, 1.0) >= .2 + .035 * stats.Defending)
+				{
+
+					//base value of 20% successful non foul or 50% if no ball
+					if (FMath::FRandRange(0.0, 1.0) >= .2 + .035 * stats.Defending || (!_char->bHasBall && FMath::FRandRange(0.0, 1.0) >= .5))
+					{
+						AddCard();
+
+						//TODO: add free-kick
+					}
+					else
+					{
+						//base value of 50% successful ball possession
+						if (FMath::FRandRange(0.0, 1.0) >= .5)
+						{
+							KnownBall->Possess(this);
+						}
+					}
+
+					_char->GetTackled();
+				}
 				if (FMath::RandRange(0.0, 1.0) > _char->stats.Defending * 0.01)
 				{
 					//This will find if he has ball and play his fall animation
 
-					_char->GetTackled();
+					
 
 					//Add card
 
 					if (FMath::RandRange(0.0, 1.0) > stats.Defending * 0.045 || !_char->bHasBall)
 					{
-						AddCard();
 					}
 					else
 					{
-						// Rob football
-
-						if (FMath::RandRange(0.0, 1.0) <= stats.Defending * 0.025)
-						{
-							KnownBall->Possess(this);
-						}
+						
 					}
 				}
 			}
@@ -360,26 +378,12 @@ void AFootballCharacter::AddCard()
 
 	if(cardNumber == 2)
 	{
-		if(bPlaysAtHome)
-		{
-			Cast<AFootballGameMode>(CurrentGameMode)->pawnElevenHome.Remove(this);
-			GEngine->AddOnScreenDebugMessage(-1, 10, FColor::Red, "Red");
-		}
-		else
-		{
-			Cast<AFootballGameMode>(CurrentGameMode)->pawnElevenHome.Remove(this);
-			GEngine->AddOnScreenDebugMessage(-1, 10, FColor::Red, "Red");
-		}
-		if(bPlaysAtHome)
-		{
-			float x = 0;
+		float x = 0;
+		AActor* closeA = UGameplayStatics::FindNearestActor(GetActorLocation(), teamColleagues, x);
 
-			TArray<AActor*> AllTeamPlayer = (bPlaysAtHome) ? Cast<AFootballGameMode>(CurrentGameMode)->pawnElevenHome : Cast<AFootballGameMode>(CurrentGameMode)->pawnElevenAway;
-			AllTeamPlayer.Remove(this);
-			AActor* closeA = UGameplayStatics::FindNearestActor(GetActorLocation(), AllTeamPlayer, x);
-			PC->Possess(Cast<APawn>(closeA));
-		}
-		
+		(bPlaysAtHome) ? Cast<AFootballGameMode>(CurrentGameMode)->pawnElevenHome.Remove(this) : Cast<AFootballGameMode>(CurrentGameMode)->pawnElevenAway.Remove(this);
+		(bPlaysAtHome) ? PC->Possess(Cast<APawn>(closeA)) : NULL;
+
 		Destroy();
 	}
 }
@@ -391,7 +395,8 @@ void AFootballCharacter::GetTackled()
 		KnownBall->UnPossess();
 	}
 	bIsCharging = false;
-	PlayAnimMontage(MontageTackled, .75, EName::None);
+
+	(FMath::FRandRange(0.0, 1.0) >= .3) ? PlayAnimMontage(MontageTackled, .75, EName::None) : NULL;
 }
 
 

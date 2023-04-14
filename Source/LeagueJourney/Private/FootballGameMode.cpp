@@ -44,55 +44,32 @@ void AFootballGameMode::BeginPlay()
 		}
 	}
 
-	PC = UGameplayStatics::GetPlayerController(GetWorld(), 0);
-	for(AActor* actor : pawnElevenHome)
-	{
-		if(Cast<AFootballCharacter>(actor)->stats.CurrentPosition == "ST")
-		{
-			PC->Possess(Cast<APawn>(actor));
-		}
-		else
-		{
-			if(Cast<AFootballCharacter>(actor)->stats.CurrentPosition == "LST" || Cast<AFootballCharacter>(actor)->stats.CurrentPosition == "RST")
-			{
-				PC->Possess(Cast<APawn>(actor));
-			}
-		}
-	}
+	ChooseStartingPawn(); 
 
-	if(PC->GetPawn() == nullptr)
-	{
-		PC->Possess(Cast<APawn>(pawnElevenHome[0]));
-	}
-	PC->GetPawn()->Controller = PC;
+	
 }
 
 void AFootballGameMode::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
-	if(bTeamHasBallHome)
+	if(SpawnedFootball->bIsPosessed)
 	{
-		if (PC && PC->GetPawn())
-		{
-			attackPercentageHome = FMath::Clamp((PC->GetPawn()->GetActorLocation().Y / 5700.0 < 0)? (PC->GetPawn()->GetActorLocation().Y / 5700.0)*-2.0 : PC->GetPawn()->GetActorLocation().Y / 5700.0, 0.0f, 1.0f)*2;
-		}
-		else
-		{
-			attackPercentageHome = FMath::Clamp(attackPercentageHome += .5 * DeltaSeconds, 0.0f, 1.0f);
-		}
-		attackPercentageAway = FMath::Clamp(attackPercentageAway -= .05 * DeltaSeconds, 0.0f, 1.0f);
-	}
-	else if(bTeamHasBallAway)
-	{
+		// TODO: Fix this shit (supposed to get attacking position based on PC Pawn position)
+		// float _HomeValue = ( (Cast<AFootballCharacter>(PC->GetPawn())->CurrentPosition.Y + 4000)  - (Cast<AFootballCharacter>(PC->GetPawn())->CurrentPosition.Y * -2.0));
 
-		attackPercentageHome = FMath::Clamp(attackPercentageHome -= .5 * DeltaSeconds, 0.0f, 2.3f);
-		attackPercentageAway = FMath::Clamp(attackPercentageAway += .15 * DeltaSeconds, 0.0f, 2.3f);
+		// TODO: Dirty Way to solve problem fix please
+		attackPercentageHome = (bTeamHasBallHome) ? FMath::Clamp(attackPercentageHome += 2 * DeltaSeconds, 0.0, 2.0) : FMath::Clamp(2.0 - attackPercentageAway, 0.0, 2.0);
+		attackPercentageAway = (bTeamHasBallAway) ? FMath::Clamp(attackPercentageAway += 2 * DeltaSeconds, 0.0, 2.0) : FMath::Clamp(2.0 - attackPercentageHome, 0.0, 2.0);
 	}
 	else
 	{
-		attackPercentageHome = FMath::Clamp(attackPercentageHome -= .05 * DeltaSeconds, 0.0f, 2.3f);
-		attackPercentageAway = FMath::Clamp(attackPercentageAway -= .05 * DeltaSeconds, 0.0f, 2.3f);
+		attackPercentageHome = FMath::Clamp(attackPercentageHome -= 2 * DeltaSeconds, 0.0f, 2.0f);
+		attackPercentageAway = FMath::Clamp(attackPercentageHome -= 2 * DeltaSeconds, 0.0f, 2.0f);
 	}
+	
+	// interesting
+	// attackPercentageHome = ;
+
 
 	
 }
@@ -182,50 +159,77 @@ void AFootballGameMode::ReSpawn()
 		SpawnedFootball->LastDaddyPawn = nullptr;
 		SpawnedFootball->Com_Collision->SetAllPhysicsLinearVelocity(FVector(0, 0, 0));
 		SpawnedFootball->Com_Collision->SetPhysicsAngularVelocityInDegrees(FVector(0, 0, 0));
-		SpawnedFootball->SetActorLocation(FVector(0, 0, 20), false, nullptr, ETeleportType::ResetPhysics);
+		SpawnedFootball->SetActorLocation(FVector(0, 0, 25), false, nullptr);
 
 		if(UFootballMatchInstance* matchInstance = Cast<UFootballMatchInstance>(GetGameInstance()))
 		{
-			for (AActor* _pawn : pawnElevenHome)
+			if(pawnElevenHome.Num() > 4 && pawnElevenAway.Num() > 4)
 			{
+				for (AActor* _pawn : pawnElevenHome)
+				{
+					Cast<AFootballCharacter>(_pawn)->StopAnimMontage();
+					FVector CurrentPosition = matchInstance->AllHomePositions.FindRef(Cast<AFootballCharacter>(_pawn)->stats.CurrentPosition);
+					CurrentPosition.Z = 96.638264;
+					FTransform T_NewPawn;
 
-				FVector CurrentPosition = matchInstance->AllHomePositions.FindRef(Cast<AFootballCharacter>(_pawn)->stats.CurrentPosition);
-				FTransform T_NewPawn;
+					T_NewPawn.SetRotation(FQuat(FRotator(0, 270, 0)));
+					T_NewPawn.SetLocation(CurrentPosition);
 
-				T_NewPawn.SetRotation(FQuat(FRotator(0, 270, 0)));
-				T_NewPawn.SetLocation(CurrentPosition);
-				
-				_pawn->SetActorTransform(T_NewPawn, false, nullptr, ETeleportType::ResetPhysics);
+					_pawn->SetActorTransform(T_NewPawn, false, nullptr);
+				}
+
+				for (AActor* _pawn : pawnElevenAway)
+				{
+					Cast<AFootballCharacter>(_pawn)->StopAnimMontage();
+					FVector CurrentPosition = matchInstance->AllAwayPositions.FindRef(Cast<AFootballCharacter>(_pawn)->stats.CurrentPosition);
+					CurrentPosition.Z = 96.638264;
+					FTransform T_NewPawn;
+
+					T_NewPawn.SetRotation(FQuat(FRotator(0, 90, 0)));
+					T_NewPawn.SetLocation(CurrentPosition);
+
+					_pawn->SetActorTransform(T_NewPawn, false, nullptr);
+				}
+
+
+				ChooseStartingPawn();
 			}
 
-			for (AActor* _pawn : pawnElevenAway)
-			{
-
-				FVector CurrentPosition = matchInstance->AllAwayPositions.FindRef(Cast<AFootballCharacter>(_pawn)->stats.CurrentPosition);
-				FTransform T_NewPawn;
-
-				T_NewPawn.SetRotation(FQuat(FRotator(0, 90, 0)));
-				T_NewPawn.SetLocation(CurrentPosition);
-
-				_pawn->SetActorTransform(T_NewPawn, false, nullptr, ETeleportType::ResetPhysics);
-			}
+			attackPercentageHome = 0;
+			attackPercentageAway = 0;
+			
 		}
-		for (AActor* actor : pawnElevenHome)
+
+	}
+}
+
+void AFootballGameMode::ChooseStartingPawn()
+{
+	PC = UGameplayStatics::GetPlayerController(GetWorld(), 0);
+
+	PC->UnPossess();
+	for (AActor* actor : pawnElevenHome)
+	{
+		if (Cast<AFootballCharacter>(actor)->stats.CurrentPosition == "ST")
 		{
-			if (Cast<AFootballCharacter>(actor)->stats.CurrentPosition == "ST" || Cast<AFootballCharacter>(actor)->stats.CurrentPosition == "LST" || Cast<AFootballCharacter>(actor)->stats.CurrentPosition == "RST")
+			PC->Possess(Cast<APawn>(actor));
+		}
+		else
+		{
+			if (Cast<AFootballCharacter>(actor)->stats.CurrentPosition == "LST" || Cast<AFootballCharacter>(actor)->stats.CurrentPosition == "RST")
 			{
 				PC->Possess(Cast<APawn>(actor));
 			}
-
 		}
-
-		if (PC->GetPawn() == nullptr)
-		{
-			PC->Possess(Cast<APawn>(pawnElevenHome[0]));
-		}
-		attackPercentageHome = 0;
-		attackPercentageAway = 0;
 	}
+
+	if (PC->GetPawn() == nullptr)
+	{
+		PC->Possess(Cast<APawn>(pawnElevenHome[0]));
+	}
+
+	PC->GetPawn()->Controller = PC;
+
 }
 
 //DEBUG ONLY

@@ -130,6 +130,9 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void ReSpawn();
 
+	UFUNCTION(BlueprintCallable)
+	void ChooseStartingPawn();
+
 	//Animation
 
 	UPROPERTY(EditAnywhere, Category="Animation Instances")
