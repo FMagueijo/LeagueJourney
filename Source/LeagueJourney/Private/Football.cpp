@@ -150,7 +150,7 @@ void AFootball::Pass(AActor* _where, AActor* _from, float _force, float _charge)
 	Com_Collision->SetAllPhysicsLinearVelocity(FVector::Zero(), false);
 
 	FVector Predicted_Position;
-	float ballSpeed = 2500.0 + _charge * (_force/20 * 2000.0);
+	float ballSpeed = 2000.0 + _charge * (_force/20 * 1500.0);
 
 	if(_where)
 	{

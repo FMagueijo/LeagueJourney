@@ -188,6 +188,10 @@ public:
 	UPROPERTY(BlueprintReadWrite, Category = "Player Properties")
 	AFootball* KnownBall = nullptr;
 
+
+	UPROPERTY(BlueprintReadWrite, Category = "Player Properties")
+	bool bKickOff = false;
+
 	UPROPERTY(BlueprintReadWrite, Category = "Player Properties")
 	bool bHasBall = false;
 
@@ -196,6 +200,24 @@ public:
 
 	UPROPERTY(BlueprintReadWrite, Category = "Player Properties")
 	bool bWantsBall = false;
+
+	UPROPERTY(BlueprintReadWrite, Category = "Player Properties")
+	bool bCanCharge = true;
+
+	UPROPERTY(BlueprintReadWrite, Category = "Player Properties")
+	bool bCanSwitch = true;
+
+	UPROPERTY(BlueprintReadWrite, Category = "Player Properties")
+	bool bCanShoot = true;
+
+	UPROPERTY(BlueprintReadWrite, Category = "Player Properties")
+	bool bCanPass = true;
+
+	UPROPERTY(BlueprintReadWrite, Category = "Player Properties")
+	bool bCanTackle = true;
+
+	UPROPERTY(BlueprintReadWrite, Category = "Player Properties")
+	bool bCanMove = true;
 
 	UPROPERTY(BlueprintReadWrite, Category = "Player Properties")
 	bool bPlaysAtHome = false;

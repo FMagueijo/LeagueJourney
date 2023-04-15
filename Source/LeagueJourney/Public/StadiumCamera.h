@@ -27,7 +27,7 @@ public:
 	
 #pragma region Components
 
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	class USpringArmComponent* Com_SpringArm;
 
 	UPROPERTY(EditAnywhere)
@@ -37,9 +37,13 @@ public:
 
 #pragma region Properties
 
+	UPROPERTY(BlueprintReadOnly)
 	APlayerController* PC;
 	FVector CameraCurrentPosition;
+
+	UPROPERTY(BlueprintReadOnly)
 	AActor* SpawnedFootball;
+
 	float minmaxYposition = 3000;
 
 #pragma endregion

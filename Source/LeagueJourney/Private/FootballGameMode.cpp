@@ -43,29 +43,80 @@ void AFootballGameMode::BeginPlay()
 			}
 		}
 	}
-
-	ChooseStartingPawn(); 
-
+	PC = UGameplayStatics::GetPlayerController(GetWorld(), 0);
+	float distance;
+	AActor* _closest = UGameplayStatics::FindNearestActor(SpawnedFootball->GetActorLocation(), pawnElevenHome, distance);
+	CreateKickOffEvent(Cast<AFootballCharacter>(_closest));
 	
 }
+
+
+void AFootballGameMode::CreateKickOffEvent(AFootballCharacter* whoStarts)
+{
+	if (whoStarts->bKickOff)
+	{
+		GEngine->AddOnScreenDebugMessage(-1, 10, FColor::Blue, "Kick OFF");
+		SetAllActions(true);
+		whoStarts->bKickOff = false;
+		bMatchPaused = false;
+	}
+	else
+	{
+		GEngine->AddOnScreenDebugMessage(-1, 10, FColor::Blue, "Creted Kick OFF");
+
+		bMatchPaused = true;
+		SetAllActions(false);
+		whoStarts->SetActorLocation(FVector(0, 0, 95));
+		SpawnedFootball->Possess(whoStarts);
+		whoStarts->bKickOff = true;
+		whoStarts->bCanPass = true;
+		whoStarts->bCanCharge = true;
+		if(whoStarts->bPlaysAtHome)
+		{
+			PC->Possess(whoStarts);
+		}
+	}
+}
+
+
 
 void AFootballGameMode::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
-	if(SpawnedFootball->bIsPosessed)
+	if(!bMatchPaused)
 	{
-		// TODO: Fix this shit (supposed to get attacking position based on PC Pawn position)
-		// float _HomeValue = ( (Cast<AFootballCharacter>(PC->GetPawn())->CurrentPosition.Y + 4000)  - (Cast<AFootballCharacter>(PC->GetPawn())->CurrentPosition.Y * -2.0));
+		if (SpawnedFootball->bIsPosessed)
+		{
 
-		// TODO: Dirty Way to solve problem fix please
-		attackPercentageHome = (bTeamHasBallHome) ? FMath::Clamp(attackPercentageHome += 2 * DeltaSeconds, 0.0, 2.0) : FMath::Clamp(2.0 - attackPercentageAway, 0.0, 2.0);
-		attackPercentageAway = (bTeamHasBallAway) ? FMath::Clamp(attackPercentageAway += 2 * DeltaSeconds, 0.0, 2.0) : FMath::Clamp(2.0 - attackPercentageHome, 0.0, 2.0);
+			float A_HomeValue = ((2 * PC->GetPawn()->GetActorLocation().Y) / (Cast<AFootballCharacter>(PC->GetPawn())->CurrentPosition.Y - 4000))+.5;
+
+
+			float A_AwayValue = (attackPercentageAway += DeltaSeconds / 2);
+
+			float D_HomeValue = 2 - A_AwayValue;
+
+			float D_AwayValue = 2 - A_HomeValue;
+
+			(bTeamHasBallHome) ? HomePoss += DeltaSeconds : AwayPoss += DeltaSeconds;
+			TotalPoss = HomePoss + AwayPoss;
+
+			PerHomePoss = HomePoss / TotalPoss;
+			PerAwayPoss = AwayPoss / TotalPoss;
+
+			attackPercentageHome = (bTeamHasBallHome) ? FMath::Clamp(A_HomeValue, 0.0, 2.0) : FMath::Clamp(D_HomeValue, 0.0, 2.0);
+			attackPercentageAway = (bTeamHasBallAway) ? FMath::Clamp(A_AwayValue, 0.0, 2.0) : FMath::Clamp(D_AwayValue, 0.0, 2.0);
+		}
+		else
+		{
+
+			const float N_HomeValue = (attackPercentageHome -= DeltaSeconds / 2);
+			const float N_AwayValue = (attackPercentageAway -= DeltaSeconds / 2);
+
+			attackPercentageHome = FMath::Clamp(N_HomeValue, 0.0f, 2.0f);
+			attackPercentageAway = FMath::Clamp(N_AwayValue, 0.0f, 2.0f);
+		}
 	}
-	else
-	{
-		attackPercentageHome = FMath::Clamp(attackPercentageHome -= 2 * DeltaSeconds, 0.0f, 2.0f);
-		attackPercentageAway = FMath::Clamp(attackPercentageHome -= 2 * DeltaSeconds, 0.0f, 2.0f);
-	}
+	
 	
 	// interesting
 	// attackPercentageHome = ;
@@ -100,9 +151,9 @@ void AFootballGameMode::ClockLogic()
 
 
 #pragma region Odd Methods
-	//PRIVATE FUNCTIONS
+//PRIVATE FUNCTIONS
 
-	void AFootballGameMode::SpawnFootball()
+void AFootballGameMode::SpawnFootball()
 	{
 		if(footballClass)
 		{
@@ -116,7 +167,7 @@ void AFootballGameMode::ClockLogic()
 		}
 	}
 
-	void AFootballGameMode::SpawnPawn(FFootballer FootballerStruct, bool isHome)
+void AFootballGameMode::SpawnPawn(FFootballer FootballerStruct, bool isHome)
 	{
 		if (characterClass)
 		{
@@ -230,6 +281,35 @@ void AFootballGameMode::ChooseStartingPawn()
 
 	PC->GetPawn()->Controller = PC;
 
+}
+
+void AFootballGameMode::SetAllActions(bool _action)
+{
+	for (AActor* _foot : pawnElevenHome)
+	{
+		if (AFootballCharacter* _footer = Cast<AFootballCharacter>(_foot))
+		{
+			_footer->bCanSwitch = _action;
+			_footer->bCanPass = _action;
+			_footer->bCanTackle = _action;
+			_footer->bCanMove = _action;
+			_footer->bCanShoot = _action;
+			_footer->bCanCharge = _action;
+		}
+	}
+
+	for (AActor* _foot : pawnElevenAway)
+	{
+		if (AFootballCharacter* _footer = Cast<AFootballCharacter>(_foot))
+		{
+			_footer->bCanSwitch = _action;
+			_footer->bCanPass = _action;
+			_footer->bCanTackle = _action;
+			_footer->bCanMove = _action;
+			_footer->bCanShoot = _action;
+			_footer->bCanCharge = _action;
+		}
+	}
 }
 
 //DEBUG ONLY

@@ -106,6 +106,22 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category = "Match Properties")
 	int half = 0;
 
+
+	UPROPERTY(BlueprintReadOnly, Category = "Match Properties")
+	float HomePoss = 0;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Match Properties")
+	float AwayPoss = 0;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Match Properties")
+	float TotalPoss = 0;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Match Properties")
+	float PerHomePoss = 0;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Match Properties")
+	float PerAwayPoss = 0;
+
 	UPROPERTY(BlueprintReadWrite, Category = "Match Properties")
 	int Minutes = 0;
 
@@ -117,6 +133,9 @@ public:
 
 	UPROPERTY(BlueprintReadWrite, Category = "Match Properties")
 	bool FullTime= false;
+
+	UPROPERTY(BlueprintReadWrite, Category = "Match Properties")
+	bool bCountDown = true;
 
 	UPROPERTY(BlueprintReadWrite, Category = "Match Properties")
 	FVector2D MatchScore = FVector2D(0, 0);
@@ -132,6 +151,12 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	void ChooseStartingPawn();
+
+	UFUNCTION(BlueprintCallable)
+	void CreateKickOffEvent(AFootballCharacter* whoStarts);
+
+	UFUNCTION(BlueprintCallable)
+	void SetAllActions(bool _action);
 
 	//Animation
 

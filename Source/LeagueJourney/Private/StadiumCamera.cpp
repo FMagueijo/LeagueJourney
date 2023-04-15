@@ -6,6 +6,7 @@
 #include "GameFramework/Character.h"
 #include "FootballerController.h"
 #include "FootballGameMode.h"
+#include "Camera/CameraModifier_CameraShake.h"
 #include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetMathLibrary.h"
 
@@ -51,24 +52,12 @@ void AStadiumCamera::Tick(float DeltaTime)
 	FVector Object2Position = (PC->GetPawn() != nullptr) ? PC->GetPawn()->GetActorLocation() : FVector(0, 0, 0);
 
 	// Calculate the midpoint between the two objects
-	FVector Midpoint = (Object1Position + Object2Position) / 2;
+	FVector Midpoint = (SpawnedFootball != nullptr) ? SpawnedFootball->GetActorLocation() : FVector(0, 0, 0);
 	Midpoint.Z = 0;
+	
 
-
-	if (isOnScreen((PC->GetPawn()) ? PC->GetPawn() : nullptr) && isOnScreen(SpawnedFootball))
-	{
-		(Com_SpringArm->TargetArmLength > 2500) ? Com_SpringArm->TargetArmLength = FMath::Lerp(Com_SpringArm->TargetArmLength, Com_SpringArm->TargetArmLength - 5, .5f) : NULL;
-	}
-	else
-	{
-
-		Com_SpringArm->TargetArmLength = FMath::Lerp(Com_SpringArm->TargetArmLength, Com_SpringArm->TargetArmLength + 5, .5f);
-	}
-
-
-	Midpoint = FMath::Lerp(GetActorLocation(), Midpoint, .5f);
+	Midpoint = FMath::Lerp(GetActorLocation(), Midpoint, DeltaTime);
 	SetActorLocation(Midpoint);
-
 	FRotator CameraFinalRotation = UKismetMathLibrary::FindLookAtRotation(Com_Camera->GetComponentLocation(), Midpoint);
 	Com_Camera->SetWorldRotation(CameraFinalRotation);
 
