@@ -83,7 +83,7 @@ void AFootball::Possess(APawn* _parent) {
 
 		//Check if player is current
 
-		if (UGameplayStatics::GetPlayerController(GetWorld(), 0)->GetPawn() != DaddyPawn)
+		if (UGameplayStatics::GetPlayerController(GetWorld(), 0)->GetPawn() != DaddyPawn && !Cast<AFootballGameMode>(UGameplayStatics::GetGameMode(GetWorld()))->bSpecMode)
 		{
 			UGameplayStatics::GetPlayerController(GetWorld(), 0)->Possess(DaddyPawn);
 		}
@@ -150,12 +150,14 @@ void AFootball::Pass(AActor* _where, AActor* _from, float _force, float _charge)
 	Com_Collision->SetAllPhysicsLinearVelocity(FVector::Zero(), false);
 
 	FVector Predicted_Position;
-	float ballSpeed = 2000.0 + _charge * (_force/20 * 1500.0);
 
 	if(_where)
 	{
 
 		float Distance = FVector::Distance(_where->GetActorLocation(), GetActorLocation());
+
+		float ballSpeed = 2000.0 + FMath::Clamp(_charge, 0, (Distance <= 500) ? .5 : 1) * (_force / 20 * 1500.0);
+
 		float Time = Distance / ballSpeed;
 		Predicted_Position = _where->GetActorLocation() + (_where->GetVelocity() * Time);
 

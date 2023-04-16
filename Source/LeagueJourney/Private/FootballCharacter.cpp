@@ -48,18 +48,15 @@ void AFootballCharacter::BeginPlay()
 
 	//Set default values
 
-	coverageDistance = stats.Defending / 20.0 * 1500;
-
+	coverageDistance = ((stats.CurrentPosition == "GK")? stats.Goalkeeping : stats.Defending) / 20.0 * 1500;
+	
 	TArray<AActor*> _allColleagues;
-	UGameplayStatics::GetAllActorsOfClass(GetWorld(), AFootballCharacter::StaticClass(), _allColleagues);
-	for (AActor* _footballer : _allColleagues)
+	
+	if (stats.CurrentPosition == "GK" && bPlaysAtHome)
 	{
-		if (Cast<AFootballCharacter>(_footballer)->bPlaysAtHome == bPlaysAtHome)
-		{
-			teamColleagues.Add(Cast<AFootballCharacter>(_footballer));
-		}
+		GEngine->AddOnScreenDebugMessage(-1, 20, FColor::Red, "pass -> No player  " + FString::FromInt(_allColleagues.Num()));
 	}
-	teamColleagues.Remove(this);
+	
 }
 
 
@@ -72,8 +69,19 @@ void AFootballCharacter::Tick(float DeltaTime)
 	{
 		//Ball Detection Check
 
-		bWantsBall = (FVector::Distance(KnownBall->GetActorLocation(), GetActorLocation()) <= 500 + coverageDistance * (
-			(!bTeamHasBall) ? 1 : 0));
+		if(bWantsBall)
+		{
+			bWantsBall = (FVector::Distance(KnownBall->GetActorLocation(), GetActorLocation()) <= (500 + coverageDistance * ((!bTeamHasBall) ? 1 : 0)/2));
+		}else
+		{
+			bWantsBall = (FVector::Distance(KnownBall->GetActorLocation(), GetActorLocation()) <= (500 + coverageDistance * ((!bTeamHasBall) ? 1 : 0)));
+		}
+		if(PC->GetPawn() == this || KnownBall->DaddyPawn == this || !bTeamHasBall)
+		{
+			//DrawDebugSphere(GetWorld(), GetActorLocation(), 500 + coverageDistance * ((!bTeamHasBall) ? 1 : 0), 12, FColor::Black, false, -1, 0, 10);
+			//DrawDebugSphere(GetWorld(), GetActorLocation(), (500 + coverageDistance * ((!bTeamHasBall) ? 1 : 0))/2, 12, FColor::Red, false, -1, 0, 10);
+
+		}
 		float distancecovered = (1000 + coverageDistance * ((!bTeamHasBall) ? 1 : 0));
 	}
 
@@ -83,6 +91,7 @@ void AFootballCharacter::Tick(float DeltaTime)
 	{
 		FindClosestPawn(bPlaysAtHome);
 		ChargePercentage = FMath::Clamp(ChargePercentage += 1 * DeltaTime, 0.f, 1.f);
+		
 	}
 
 	//Decrement Stamina depending on player stats
@@ -90,8 +99,7 @@ void AFootballCharacter::Tick(float DeltaTime)
 	if (GetVelocity().Length() > 0)
 	{
 		stamina = FMath::Clamp(stamina -= (.005f + (1.0f / stats.Stamina) * .005f) * DeltaTime, 0.0f, 1.0f);
-		DrawDebugString(GetWorld(), GetActorLocation(), "Current Stamina = " + FString::SanitizeFloat(stamina), 0,
-		                FColor::Yellow, .01, false, 2);
+		
 	}
 
 
@@ -215,7 +223,6 @@ void AFootballCharacter::EnhancedMove(const FInputActionValue& Value)
 			GetCharacterMovement()->RotationRate = (FinalValue.Length() > .8)
 				                                       ? FRotator(0, 180 + SprintPercentage * 180, 0)
 				                                       : FRotator::ZeroRotator;
-			GEngine->AddOnScreenDebugMessage(-1, 10, FColor::Red, "Rotatin");
 
 			SetActorRotation(UKismetMathLibrary::FindLookAtRotation(GetActorLocation(), FinalValue));
 		}
@@ -262,6 +269,7 @@ void AFootballCharacter::EnhancedSwitch(const FInputActionValue& Value)
 		float x;
 		AActor* _newChar = UGameplayStatics::FindNearestActor(KnownBall->GetActorLocation(), AllTeamPlayer, x);
 		FVector _oldVel = _newChar->GetVelocity();
+		
 		PC->Possess(Cast<APawn>(_newChar));
 		Cast<AFootballCharacter>(_newChar)->AddMovementInput(_oldVel, 3, true);
 		PlayerToPassTo = nullptr;
@@ -297,7 +305,7 @@ void AFootballCharacter::Shoot()
 		{
 			ChargePercentage = FMath::FRandRange(0.1, 1.0);
 			TArray<AActor*> _targets;
-			UGameplayStatics::GetAllActorsWithTag(GetWorld(), "homeTarget", _targets);
+			UGameplayStatics::GetAllActorsWithTag(GetWorld(), (bPlaysAtHome)? "awayTarget" : "homeTarget", _targets);
 			Cast<AFootball>(KnownBall)->Shoot(
 				false, _targets[FMath::RandRange(0, _targets.Num() - 1)]->GetActorLocation() - GetActorLocation(),
 				stats.Shooting, ChargePercentage);
@@ -313,17 +321,38 @@ void AFootballCharacter::Pass()
 {
 	if (bHasBall && bCanPass && !Cast<AFootballGameMode>(CurrentGameMode)->bCountDown)
 	{
-		if (ChargePercentage == 0 || PlayerToPassTo == nullptr)
+		if(PC->GetPawn() == this)
+		{
+			float x;
+			const FVector TraceStart = GetActorLocation() + GetActorForwardVector() * (200 + ChargePercentage * (stats.
+				Passing / 20.0 * 4000));
+			PlayerToPassTo = UGameplayStatics::FindNearestActor(TraceStart, teamColleagues, x);
+			
+		}
+		else
 		{
 			ChargePercentage = FMath::FRandRange(0.1, 1.0);
 			TArray<AActor*> AllTeamPlayer;
 
 			for (AActor* _plaer : teamColleagues)
 			{
-				if (_plaer->GetActorLocation().Y > GetActorLocation().Y)
+				if(bPlaysAtHome)
 				{
-					AllTeamPlayer.Add(_plaer);
+					if (_plaer->GetActorLocation().Y < GetActorLocation().Y)
+					{
+						AllTeamPlayer.Add(_plaer);
+						DrawDebugSphere(GetWorld(), _plaer->GetActorLocation(), 100, 16, FColor::Magenta, false, 15, 0, 50);
+					}
 				}
+				else
+				{
+					if (_plaer->GetActorLocation().Y > GetActorLocation().Y)
+					{
+						AllTeamPlayer.Add(_plaer);
+						DrawDebugSphere(GetWorld(), _plaer->GetActorLocation(), 100, 16, FColor::Magenta, false, 15, 0, 50);
+					}
+				}
+				
 			}
 
 			float x;
@@ -352,12 +381,26 @@ void AFootballCharacter::Pass()
 					}
 				}
 			}
+			
 		}
+		
 
 
 		if (bKickOff)
 		{
 			Cast<AFootballGameMode>(CurrentGameMode)->CreateKickOffEvent(this);
+		}
+
+		if(PlayerToPassTo != nullptr)
+		{
+			GEngine->AddOnScreenDebugMessage(-1, 20, FColor::Red, "pass" + PlayerToPassTo->GetActorLocation().ToString());
+		}
+		else
+		{
+			float x;
+			const FVector TraceStart = GetActorLocation() + GetActorForwardVector() * (200 + ChargePercentage * (stats.
+				Passing / 20.0 * 4000));
+			PlayerToPassTo = UGameplayStatics::FindNearestActor(TraceStart, teamColleagues, x);
 		}
 
 		Cast<AFootball>(KnownBall)->Pass(PlayerToPassTo, this, stats.Passing, ChargePercentage);
@@ -514,6 +557,7 @@ void AFootballCharacter::FindClosestPawn(bool isHome)
 			PlayerToPassTo = UGameplayStatics::FindNearestActor(TraceStart * 2, _allPlayers, x);
 			DrawDebugSphere(GetWorld(), PlayerToPassTo->GetActorLocation(), 500, 16, FColor::Green);
 		}
+
 	}
 	else
 	{

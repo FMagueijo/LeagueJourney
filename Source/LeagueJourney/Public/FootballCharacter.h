@@ -231,6 +231,7 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category = "Player Properties")
 	float coverageDistance = 1000.0;
 
+	UPROPERTY(BlueprintReadOnly, Category = "Player Properties")
 	TArray<AActor*> teamColleagues;
 	
 	//Actions Booleans

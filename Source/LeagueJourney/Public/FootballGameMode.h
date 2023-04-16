@@ -191,6 +191,9 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Boolean Overrides")
 	bool bSpawnTutorialUI = false;
 
+	UPROPERTY(EditAnywhere, Category = "Boolean Overrides")
+	bool bSpecMode = false;
+
 	UFUNCTION()
 	void SpawnDebugPlayers();
 

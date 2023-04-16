@@ -43,6 +43,20 @@ void AFootballGameMode::BeginPlay()
 			}
 		}
 	}
+
+	for (AActor* _jogador : pawnElevenHome)
+	{
+		TArray<AActor*> _newPawns = pawnElevenHome;
+		_newPawns.Remove(_jogador);
+		Cast<AFootballCharacter>(_jogador)->teamColleagues = _newPawns;
+	}
+	for (AActor* _jogador : pawnElevenAway)
+	{
+		TArray<AActor*> _newPawns = pawnElevenAway;
+		_newPawns.Remove(_jogador);
+		Cast<AFootballCharacter>(_jogador)->teamColleagues = _newPawns;
+	}
+
 	PC = UGameplayStatics::GetPlayerController(GetWorld(), 0);
 	float distance;
 	AActor* _closest = UGameplayStatics::FindNearestActor(SpawnedFootball->GetActorLocation(), pawnElevenHome, distance);
@@ -71,7 +85,7 @@ void AFootballGameMode::CreateKickOffEvent(AFootballCharacter* whoStarts)
 		whoStarts->bKickOff = true;
 		whoStarts->bCanPass = true;
 		whoStarts->bCanCharge = true;
-		if(whoStarts->bPlaysAtHome)
+		if(whoStarts->bPlaysAtHome && !bSpecMode)
 		{
 			PC->Possess(whoStarts);
 		}
@@ -87,30 +101,50 @@ void AFootballGameMode::Tick(float DeltaSeconds)
 	{
 		if (SpawnedFootball->bIsPosessed)
 		{
+			float A_HomeValue;
+			if (bSpecMode)
+			{
+				A_HomeValue = (Cast<AFootballCharacter>(SpawnedFootball->DaddyPawn)->stats.CurrentPosition == "GK") ? 0 : (attackPercentageAway += DeltaSeconds / 2);
+			}
+			else
+			{
 
-			float A_HomeValue = ((2 * PC->GetPawn()->GetActorLocation().Y) / (Cast<AFootballCharacter>(PC->GetPawn())->CurrentPosition.Y - 4000))+.5;
+				float scaleMin = (Cast<AFootballCharacter>(PC->GetPawn())->CurrentPosition.Y);
+				float scaleMax = scaleMin + 4000;
+				float x = PC->GetPawn()->GetActorLocation().Y;
+				A_HomeValue = FMath::Clamp((x - scaleMin) / (scaleMax - scaleMin) * -2.0, 0, 2);
+			}
+			
 
+			float A_AwayValue = (Cast<AFootballCharacter>(SpawnedFootball->DaddyPawn)->stats.CurrentPosition == "GK")? 0 : (attackPercentageAway += DeltaSeconds / 2);
 
-			float A_AwayValue = (attackPercentageAway += DeltaSeconds / 2);
+			float _newnew = (SpawnedFootball) ? (SpawnedFootball->GetActorLocation().Y) : 0;
 
-			float D_HomeValue = 2 - A_AwayValue;
+			float D_HomeValue = 2 - (A_AwayValue+.5);
 
-			float D_AwayValue = 2 - A_HomeValue;
+			float D_AwayValue = 2 - (A_HomeValue+.5);
 
 			(bTeamHasBallHome) ? HomePoss += DeltaSeconds : AwayPoss += DeltaSeconds;
 			TotalPoss = HomePoss + AwayPoss;
 
-			PerHomePoss = HomePoss / TotalPoss;
-			PerAwayPoss = AwayPoss / TotalPoss;
+			PerHomePoss = (HomePoss / TotalPoss);
+			PerAwayPoss = (AwayPoss / TotalPoss);
 
 			attackPercentageHome = (bTeamHasBallHome) ? FMath::Clamp(A_HomeValue, 0.0, 2.0) : FMath::Clamp(D_HomeValue, 0.0, 2.0);
 			attackPercentageAway = (bTeamHasBallAway) ? FMath::Clamp(A_AwayValue, 0.0, 2.0) : FMath::Clamp(D_AwayValue, 0.0, 2.0);
 		}
 		else
 		{
+			float AwayScaleMin = 5000;
+			float AwayScaleMax = -5000;
+			float x = SpawnedFootball->GetActorLocation().Y;
 
-			const float N_HomeValue = (attackPercentageHome -= DeltaSeconds / 2);
-			const float N_AwayValue = (attackPercentageAway -= DeltaSeconds / 2);
+			float N_AwayValue = FMath::Clamp((x - AwayScaleMax) / (AwayScaleMax - AwayScaleMin) * -2.0, 0, 2);
+			float N_HomeValue = 2 - N_AwayValue;
+
+
+			//const float N_HomeValue = (attackPercentageHome -= DeltaSeconds * 2);
+			//const float N_AwayValue = (attackPercentageAway -= DeltaSeconds * 2);
 
 			attackPercentageHome = FMath::Clamp(N_HomeValue, 0.0f, 2.0f);
 			attackPercentageAway = FMath::Clamp(N_AwayValue, 0.0f, 2.0f);
@@ -242,8 +276,11 @@ void AFootballGameMode::ReSpawn()
 					_pawn->SetActorTransform(T_NewPawn, false, nullptr);
 				}
 
+				if(!bSpecMode){
 
-				ChooseStartingPawn();
+					ChooseStartingPawn();
+					
+				}
 			}
 
 			attackPercentageHome = 0;
