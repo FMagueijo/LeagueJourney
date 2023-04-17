@@ -18,6 +18,9 @@ void AFootballGameMode::BeginPlay()
 {
 	Super::BeginPlay();
 
+	bSpecMode = Cast<UFootballMatchInstance>(GetGameInstance())->bSpectate;
+	Rate = Cast<UFootballMatchInstance>(GetGameInstance())->MatchRate;
+	
 
 	SpawnFootball();
 	SpawnCamera();

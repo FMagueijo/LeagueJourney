@@ -128,6 +128,17 @@ public:
 	int Difficulty = 1;
 
 	UPROPERTY(BlueprintReadWrite)
+	int MatchRate = 15;
+	//3 / 45
+
+	UPROPERTY(BlueprintReadWrite)
+	bool bSpectate = false;
+
+
+	UPROPERTY(BlueprintReadWrite)
+	FString LevelToLoad = "StadiumMCB";
+	
+	UPROPERTY(BlueprintReadWrite)
 	FTeam H_Team;
 
 	UPROPERTY(BlueprintReadWrite)
