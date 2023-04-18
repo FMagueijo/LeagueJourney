@@ -14,16 +14,16 @@ UFootballMatchInstance::UFootballMatchInstance()
 	AllHomePositions.Add("GK", FVector(0, 5400.0, 10));
 
 	AllHomePositions.Add("LB", FVector(-2300, 3900, 10));
-	AllHomePositions.Add("LCB", FVector(-1000, 3900, 10));
-	AllHomePositions.Add("CB", FVector(0, 3900, 10));
-	AllHomePositions.Add("RCB", FVector(1000, 3900, 10));
+	AllHomePositions.Add("LCB", FVector(-1000, 4100, 10));
+	AllHomePositions.Add("CB", FVector(0, 4100, 10));
+	AllHomePositions.Add("RCB", FVector(1000, 4100, 10));
 	AllHomePositions.Add("RB", FVector(2300, 3900, 10));
 
-	AllHomePositions.Add("LM", FVector(-2600, 2500, 10));
-	AllHomePositions.Add("LCM", FVector(-1400, 2500, 10));
-	AllHomePositions.Add("CM", FVector(0, 2500, 10));
-	AllHomePositions.Add("RCM", FVector(1400, 2500, 10));
-	AllHomePositions.Add("RM", FVector(2600, 2500, 10));
+	AllHomePositions.Add("LM", FVector(-2600, 2000, 10));
+	AllHomePositions.Add("LCM", FVector(-1400, 2000, 10));
+	AllHomePositions.Add("CM", FVector(0, 2000, 10));
+	AllHomePositions.Add("RCM", FVector(1400, 2000, 10));
+	AllHomePositions.Add("RM", FVector(2600, 2000, 10));
 
 	AllHomePositions.Add("LW", FVector(-2600, 700, 10));
 	AllHomePositions.Add("LST", FVector(-1400, 700, 10));
@@ -36,16 +36,16 @@ UFootballMatchInstance::UFootballMatchInstance()
 	AllAwayPositions.Add("GK", FVector(0, -5360.0, 10));
 
 	AllAwayPositions.Add("LB", FVector(2300, -3900, 10));
-	AllAwayPositions.Add("LCB", FVector(1000, -3900, 10));
-	AllAwayPositions.Add("CB", FVector(0, -3900, 10));
-	AllAwayPositions.Add("RCB", FVector(-1000, -3900, 10));
+	AllAwayPositions.Add("LCB", FVector(1000, -4100, 10));
+	AllAwayPositions.Add("CB", FVector(0, -4100, 10));
+	AllAwayPositions.Add("RCB", FVector(-1000, -4100, 10));
 	AllAwayPositions.Add("RB", FVector(-2300, -3900, 10));
 
-	AllAwayPositions.Add("LM", FVector(2600, -2500, 10));
-	AllAwayPositions.Add("LCM", FVector(1400, -2500, 10));
-	AllAwayPositions.Add("CM", FVector(0, -2500, 10));
-	AllAwayPositions.Add("RCM", FVector(-1400, -2500, 10));
-	AllAwayPositions.Add("RM", FVector(-2600, -2500, 10));
+	AllAwayPositions.Add("LM", FVector(2600, -2000, 10));
+	AllAwayPositions.Add("LCM", FVector(1400, -2000, 10));
+	AllAwayPositions.Add("CM", FVector(0, -2000, 10));
+	AllAwayPositions.Add("RCM", FVector(-1400, -2000, 10));
+	AllAwayPositions.Add("RM", FVector(-2600, -2000, 10));
 
 	AllAwayPositions.Add("LW", FVector(2600, -700, 10));
 	AllAwayPositions.Add("LST", FVector(1400, -700, 10));
@@ -100,11 +100,17 @@ UFootballMatchInstance::UFootballMatchInstance()
 					for (int t = 0; t < FootballDatabase[c].Divisions[d].Teams.Num(); t++) {
 						FTeam* x;
 						x = &FootballDatabase[c].Divisions[d].Teams[t];
+
 						FString ImgFullPath = FPlatformProcess::UserDir() + x->Crest;
 						ImgFullPath = ImgFullPath.Replace(TEXT("\\"), TEXT("/"));
-						
-						x->Texture2DCrest = FImageUtils::ImportFileAsTexture2D(ImgFullPath);
 
+
+						FString kit_ImgFullPath = FPlatformProcess::UserDir() + x->Kit;
+						kit_ImgFullPath = kit_ImgFullPath.Replace(TEXT("\\"), TEXT("/"));
+
+						x->Texture2DCrest = FImageUtils::ImportFileAsTexture2D(ImgFullPath);
+						x->Texture2DKit = FImageUtils::ImportFileAsTexture2D(kit_ImgFullPath);
+						
 					}
 				}
 			}

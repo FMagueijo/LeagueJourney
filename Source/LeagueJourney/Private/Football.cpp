@@ -128,21 +128,23 @@ void AFootball::CheckPossession(bool _bHome, bool _bIgnore) {
 
 }
 
-void AFootball::Shoot(bool _chip, FVector _direction, float _force, float _charge){
+void AFootball::Shoot(float _distance, FVector _direction, float _force, float _charge){
 	UnPossess();
-
-	if(_chip)
-	{
-		
-	}
+	
 	_direction.Normalize();
 	Com_Collision->SetAllPhysicsLinearVelocity(FVector::Zero(), false);
 
-	FVector ShootVector = _direction * (1500.0 + (_charge * (_force / 20.0 * 2000.0)));
-	ShootVector.Z = (400.0 * _charge);
 
-	Com_Collision->AddImpulse(ShootVector, NAME_None, false);
-	Com_Collision->AddAngularImpulseInDegrees(ShootVector, NAME_None, true);
+	float DistanceFactor = _distance / (1000.0 + (90.0 * _force));
+	float speed = (3000.0 + (_charge * (_force / 20.0 * 3000.0)));
+	FVector ShootVector = _direction * speed;
+
+
+	ShootVector.Z = FMath::Clamp(_charge * 700.0 + FMath::FRandRange(0.0, 1000.0 * DistanceFactor), 0, 1700);
+	ShootVector.X += FMath::Clamp(FMath::FRandRange(DistanceFactor* -1000, DistanceFactor * 1000), -1300, 1300);
+	
+	Com_Collision->AddImpulse(ShootVector, NAME_None, true);
+
 }
 
 void AFootball::Pass(AActor* _where, AActor* _from, float _force, float _charge) {
@@ -156,7 +158,11 @@ void AFootball::Pass(AActor* _where, AActor* _from, float _force, float _charge)
 
 		float Distance = FVector::Distance(_where->GetActorLocation(), GetActorLocation());
 
-		float ballSpeed = 2000.0 + FMath::Clamp(_charge, 0, (Distance <= 500) ? .5 : 1) * (_force / 20 * 1500.0);
+		if(Distance <= 500)
+		{
+			_charge = FMath::Clamp(_charge, 0, 0.3);
+		}
+		float ballSpeed = 2000.0 + FMath::Clamp(_charge, 0, (Distance <= 500) ? .5 : 1) * (_force / 20 * 3500.0);
 
 		float Time = Distance / ballSpeed;
 		Predicted_Position = _where->GetActorLocation() + (_where->GetVelocity() * Time);
@@ -167,7 +173,7 @@ void AFootball::Pass(AActor* _where, AActor* _from, float _force, float _charge)
 
 		FVector direction = (Predicted_Position - GetActorLocation()).GetSafeNormal();
 		direction *= ballSpeed;
-		
+		direction.Z = 500.0 * _charge;
 		Com_Collision->AddImpulse(direction, NAME_None, true);
 	}
 	else

@@ -132,6 +132,9 @@ public:
 	float Seconds = 0.f;
 
 	UPROPERTY(BlueprintReadWrite, Category = "Match Properties")
+	int Difficulty = 0;
+
+	UPROPERTY(BlueprintReadWrite, Category = "Match Properties")
 	bool FullTime= false;
 
 	UPROPERTY(BlueprintReadWrite, Category = "Match Properties")
@@ -154,6 +157,9 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	void CreateKickOffEvent(AFootballCharacter* whoStarts);
+
+	UFUNCTION(BlueprintCallable)
+	void CreateGoalKickEvent(AFootballCharacter* _whoGets);
 
 	UFUNCTION(BlueprintCallable)
 	void SetAllActions(bool _action);

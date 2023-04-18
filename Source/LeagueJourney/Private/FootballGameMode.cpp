@@ -20,6 +20,7 @@ void AFootballGameMode::BeginPlay()
 
 	bSpecMode = Cast<UFootballMatchInstance>(GetGameInstance())->bSpectate;
 	Rate = Cast<UFootballMatchInstance>(GetGameInstance())->MatchRate;
+	Difficulty = Cast<UFootballMatchInstance>(GetGameInstance())->Difficulty;
 	
 
 	SpawnFootball();
@@ -75,6 +76,8 @@ void AFootballGameMode::CreateKickOffEvent(AFootballCharacter* whoStarts)
 		GEngine->AddOnScreenDebugMessage(-1, 10, FColor::Blue, "Kick OFF");
 		SetAllActions(true);
 		whoStarts->bKickOff = false;
+		whoStarts->bGoalKick = false;
+		whoStarts->bCorner = false;
 		bMatchPaused = false;
 	}
 	else
@@ -95,6 +98,35 @@ void AFootballGameMode::CreateKickOffEvent(AFootballCharacter* whoStarts)
 	}
 }
 
+void AFootballGameMode::CreateGoalKickEvent(AFootballCharacter* _whoGets)
+{
+	if(_whoGets->bGoalKick)
+	{
+		SetAllActions(true);
+		_whoGets->bKickOff = false;
+		_whoGets->bGoalKick = false;
+		_whoGets->bCorner = false;
+		bMatchPaused = false;
+	}
+	else
+	{
+		ReSpawn();
+		bMatchPaused = true;
+		SetAllActions(false);
+
+		_whoGets->bKickOff = false;
+		_whoGets->bCanPass = true;
+		_whoGets->bCanCharge = true;
+		_whoGets->bGoalKick = true;
+
+		SpawnedFootball->Possess(_whoGets);
+		
+		if (_whoGets->bPlaysAtHome && !bSpecMode)
+		{
+			PC->Possess(_whoGets);
+		}
+	}
+}
 
 
 void AFootballGameMode::Tick(float DeltaSeconds)
@@ -123,9 +155,9 @@ void AFootballGameMode::Tick(float DeltaSeconds)
 
 			float _newnew = (SpawnedFootball) ? (SpawnedFootball->GetActorLocation().Y) : 0;
 
-			float D_HomeValue = 2 - (A_AwayValue+.5);
+			float D_HomeValue = 2 - A_AwayValue - 1.0;
 
-			float D_AwayValue = 2 - (A_HomeValue+.5);
+			float D_AwayValue = 2 - A_HomeValue - 1.0;
 
 			(bTeamHasBallHome) ? HomePoss += DeltaSeconds : AwayPoss += DeltaSeconds;
 			TotalPoss = HomePoss + AwayPoss;
@@ -133,8 +165,8 @@ void AFootballGameMode::Tick(float DeltaSeconds)
 			PerHomePoss = (HomePoss / TotalPoss);
 			PerAwayPoss = (AwayPoss / TotalPoss);
 
-			attackPercentageHome = (bTeamHasBallHome) ? FMath::Clamp(A_HomeValue, 0.0, 2.0) : FMath::Clamp(D_HomeValue, 0.0, 2.0);
-			attackPercentageAway = (bTeamHasBallAway) ? FMath::Clamp(A_AwayValue, 0.0, 2.0) : FMath::Clamp(D_AwayValue, 0.0, 2.0);
+			attackPercentageHome = (bTeamHasBallHome) ? FMath::Clamp(A_HomeValue, 0.0, 2.0) : FMath::Clamp(D_HomeValue, 0.0, 1.7);
+			attackPercentageAway = (bTeamHasBallAway) ? FMath::Clamp(A_AwayValue, 0.0, 2.0) : FMath::Clamp(D_AwayValue, 0.0, 1.7);
 		}
 		else
 		{
@@ -149,8 +181,8 @@ void AFootballGameMode::Tick(float DeltaSeconds)
 			//const float N_HomeValue = (attackPercentageHome -= DeltaSeconds * 2);
 			//const float N_AwayValue = (attackPercentageAway -= DeltaSeconds * 2);
 
-			attackPercentageHome = FMath::Clamp(N_HomeValue, 0.0f, 2.0f);
-			attackPercentageAway = FMath::Clamp(N_AwayValue, 0.0f, 2.0f);
+			attackPercentageHome = FMath::Clamp(N_HomeValue, 0.0f, 2.0);
+			attackPercentageAway = FMath::Clamp(N_AwayValue, 0.0f, 2.0);
 		}
 	}
 	
@@ -225,6 +257,14 @@ void AFootballGameMode::SpawnPawn(FFootballer FootballerStruct, bool isHome)
 				NewPawn->CurrentPosition = CurrentPosition;
 				NewPawn->bPlaysAtHome = isHome;
 				NewPawn->KnownBall = SpawnedFootball;
+
+				UMaterialInstanceDynamic* MILight = UMaterialInstanceDynamic::Create(NewPawn->GetMesh()->GetMaterial(1), this); 
+				
+				MILight->SetTextureParameterValue(FName(TEXT("MainTexture")), (NewPawn->bPlaysAtHome)? teamHome.Texture2DKit : teamAway.Texture2DKit);
+
+				NewPawn->GetMesh()->SetMaterial(1, MILight);
+
+
 
 				if (animinstanceDefault && animinstanceGoalkeeper && UKismetStringLibrary::EqualEqual_StriStri("GK", FootballerStruct.CurrentPosition))
 				{

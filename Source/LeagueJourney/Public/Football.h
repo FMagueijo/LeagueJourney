@@ -51,7 +51,7 @@ public:
 	void CheckPossession(bool _bHome, bool _bIgnore);
 
 	UFUNCTION()
-	void Shoot(bool _chip, FVector _direction, float _force, float _charge);
+	void Shoot(float _distance, FVector _direction, float _force, float _charge);
 	void Pass(AActor* _where, AActor* _from, float _force, float _charge);
 
 	UFUNCTION()

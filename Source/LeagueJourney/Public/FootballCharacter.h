@@ -60,10 +60,7 @@ public:
 
 	UFUNCTION()
 	void teamHasBall(bool bHome);
-
-	UFUNCTION()
-	bool IsActorBehind(AActor* actor0, AActor* actor1);
-
+	
 
 	//Camera Properties
 
@@ -129,9 +126,6 @@ public:
 	//Actions Methods
 
 	UFUNCTION(BlueprintCallable)
-	void MoveBallPoint();
-
-	UFUNCTION(BlueprintCallable)
 	void Shoot();
 
 	UFUNCTION(BlueprintCallable)
@@ -140,14 +134,17 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void Tackle();
 
-	UFUNCTION()
-	void MoveTowardsActor(AActor* _actor);
-
 	UFUNCTION(BlueprintCallable)
 	void AddCard();
 
 	UFUNCTION(BlueprintCallable)
 	void GetTackled();
+
+	UFUNCTION(BlueprintCallable)
+	void GetMaxPace();
+
+	UFUNCTION(BlueprintCallable)
+	void DifficultyToStats();
 
 	//Input Properties
 
@@ -191,6 +188,12 @@ public:
 
 	UPROPERTY(BlueprintReadWrite, Category = "Player Properties")
 	bool bKickOff = false;
+
+	UPROPERTY(BlueprintReadWrite, Category = "Player Properties")
+	bool bCorner = false;
+
+	UPROPERTY(BlueprintReadWrite, Category = "Player Properties")
+	bool bGoalKick = false;
 
 	UPROPERTY(BlueprintReadWrite, Category = "Player Properties")
 	bool bHasBall = false;
@@ -271,27 +274,18 @@ public:
 
 
 #pragma region Overlap Related
-
-	UPROPERTY(EditAnywhere)
-	class USphereComponent* BallDetectionArea;
-
+	
 	UPROPERTY(EditAnywhere)
 	class USphereComponent* BallPosessArea;
 
 
 	//Overlaps 
+	
+	UFUNCTION()
+	void OnPossessOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
 
 	UFUNCTION()
-	void OnDetectionOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
-
-	UFUNCTION()
-	void OnDetectionOverlapEnd(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
-
-	UFUNCTION()
-	void OnPosessOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
-
-	UFUNCTION()
-	void OnPosessOverlapEnd(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
+	void OnPossessOverlapEnd(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
 
 
 #pragma endregion
