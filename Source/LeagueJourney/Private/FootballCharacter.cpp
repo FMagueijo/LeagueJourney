@@ -48,11 +48,11 @@ void AFootballCharacter::BeginPlay()
 	
 	if(stats.CurrentPosition == "GK")
 	{
-		coverageDistance = 200 + stats.Goalkeeping * 300;
+		coverageDistance = 1000 + stats.Goalkeeping / 20 * 1500;
 	}
 	else
 	{
-		coverageDistance = 200 + stats.Defending * 4000;
+		coverageDistance = 1000 + stats.Defending / 20 * 3000;
 	}
 
 	TArray<AActor*> _allColleagues;
@@ -80,11 +80,7 @@ void AFootballCharacter::Tick(float DeltaTime)
 	if (KnownBall)
 	{
 		//Ball Detection Check
-
-		if(bKickOff && bHasBall)
-		{
-			GEngine->AddOnScreenDebugMessage(-1, 1, FColor::Red, "TenhoBola");
-		}
+		
 
 		if(bWantsBall)
 		{
@@ -361,7 +357,6 @@ void AFootballCharacter::Pass()
 						if (_plaer->GetActorLocation().Y < GetActorLocation().Y)
 						{
 							AllTeamPlayer.Add(_plaer);
-							DrawDebugSphere(GetWorld(), _plaer->GetActorLocation(), 100, 16, FColor::Magenta, false, 15, 0, 50);
 						}
 					}
 					else
@@ -369,7 +364,6 @@ void AFootballCharacter::Pass()
 						if (_plaer->GetActorLocation().Y > GetActorLocation().Y)
 						{
 							AllTeamPlayer.Add(_plaer);
-							DrawDebugSphere(GetWorld(), _plaer->GetActorLocation(), 100, 16, FColor::Magenta, false, 15, 0, 50);
 						}
 					}
 

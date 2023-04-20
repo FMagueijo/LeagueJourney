@@ -144,20 +144,18 @@ void AFootballGameMode::Tick(float DeltaSeconds)
 			else
 			{
 
-				float scaleMin = (Cast<AFootballCharacter>(PC->GetPawn())->CurrentPosition.Y);
-				float scaleMax = scaleMin + 4000;
-				float x = PC->GetPawn()->GetActorLocation().Y;
+				const float scaleMin = (Cast<AFootballCharacter>(PC->GetPawn())->CurrentPosition.Y);
+				const float scaleMax = scaleMin + 4000;
+				const float x = PC->GetPawn()->GetActorLocation().Y;
 				A_HomeValue = FMath::Clamp((x - scaleMin) / (scaleMax - scaleMin) * -2.0, 0, 2);
 			}
 			
 
-			float A_AwayValue = (Cast<AFootballCharacter>(SpawnedFootball->DaddyPawn)->stats.CurrentPosition == "GK")? 0 : (attackPercentageAway += DeltaSeconds / 2);
+			const float A_AwayValue = (Cast<AFootballCharacter>(SpawnedFootball->DaddyPawn)->stats.CurrentPosition == "GK")? 0 : (attackPercentageAway += DeltaSeconds / 2);
+			
+			const float D_HomeValue = 2 - A_AwayValue - 1.5;
 
-			float _newnew = (SpawnedFootball) ? (SpawnedFootball->GetActorLocation().Y) : 0;
-
-			float D_HomeValue = 2 - A_AwayValue - 1.0;
-
-			float D_AwayValue = 2 - A_HomeValue - 1.0;
+			const float D_AwayValue = 2 - A_HomeValue - 1.5;
 
 			(bTeamHasBallHome) ? HomePoss += DeltaSeconds : AwayPoss += DeltaSeconds;
 			TotalPoss = HomePoss + AwayPoss;
@@ -165,17 +163,17 @@ void AFootballGameMode::Tick(float DeltaSeconds)
 			PerHomePoss = (HomePoss / TotalPoss);
 			PerAwayPoss = (AwayPoss / TotalPoss);
 
-			attackPercentageHome = (bTeamHasBallHome) ? FMath::Clamp(A_HomeValue, 0.0, 2.0) : FMath::Clamp(D_HomeValue, 0.0, 1.7);
-			attackPercentageAway = (bTeamHasBallAway) ? FMath::Clamp(A_AwayValue, 0.0, 2.0) : FMath::Clamp(D_AwayValue, 0.0, 1.7);
+			attackPercentageHome = (bTeamHasBallHome) ? FMath::Clamp(A_HomeValue, 0.0, 1.7) : FMath::Clamp(D_HomeValue, 0.0, 1.7);
+			attackPercentageAway = (bTeamHasBallAway) ? FMath::Clamp(A_AwayValue, 0.0, 1.7) : FMath::Clamp(D_AwayValue, 0.0, 1.7);
 		}
 		else
 		{
-			float AwayScaleMin = 5000;
-			float AwayScaleMax = -5000;
-			float x = SpawnedFootball->GetActorLocation().Y;
+			const float AwayScaleMin = 5000;
+			const float AwayScaleMax = -5000;
+			const float x = SpawnedFootball->GetActorLocation().Y;
 
-			float N_AwayValue = FMath::Clamp((x - AwayScaleMax) / (AwayScaleMax - AwayScaleMin) * -2.0, 0, 2);
-			float N_HomeValue = 2 - N_AwayValue;
+			const float N_AwayValue = FMath::Clamp((x - AwayScaleMax) / (AwayScaleMax - AwayScaleMin) * -2.0, 0, 2);
+			const float N_HomeValue = 2 - N_AwayValue;
 
 
 			//const float N_HomeValue = (attackPercentageHome -= DeltaSeconds * 2);
