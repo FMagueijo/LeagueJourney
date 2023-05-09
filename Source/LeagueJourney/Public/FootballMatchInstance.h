@@ -117,7 +117,10 @@ public:
 	 * Basic Match Transport Settings
 	 */
 
+	UPROPERTY(EditDefaultsOnly)
 	TMap<FString, FVector> AllHomePositions;
+
+	UPROPERTY(EditDefaultsOnly)
 	TMap<FString, FVector> AllAwayPositions;
 	
 	

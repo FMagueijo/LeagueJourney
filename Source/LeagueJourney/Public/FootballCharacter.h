@@ -25,7 +25,8 @@ class LEAGUEJOURNEY_API AFootballCharacter : public ACharacter
 public:
 	// Sets default values for this character's properties
 	AFootballCharacter();
-
+	virtual void PawnClientRestart() override;
+	virtual void Restart() override;
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
@@ -88,6 +89,9 @@ public:
 	UInputAction* PassAction;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Input Actions")
+	UInputAction* CrossAction;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Input Actions")
 	UInputAction* ShootAction;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Input Actions")
@@ -115,12 +119,13 @@ public:
 	void EnhancedPass(const FInputActionValue& Value);
 
 	UFUNCTION()
+	void EnhancedCross(const FInputActionValue& Value);
+
+	UFUNCTION()
 	void EnhancedSwitch(const FInputActionValue& Value);
 
 	UFUNCTION()
 	void EnhancedShot(const FInputActionValue& Value);
-
-
 
 
 	//Actions Methods
@@ -130,6 +135,9 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	void Pass();
+
+	UFUNCTION(BlueprintCallable)
+	void Cross();
 
 	UFUNCTION(BlueprintCallable)
 	void Tackle();
@@ -146,6 +154,7 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void DifficultyToStats();
 
+
 	//Input Properties
 
 	UPROPERTY(BlueprintReadOnly, Category = "Input Properties")
@@ -161,7 +170,6 @@ public:
 	AActor* PlayerToPassTo;
 
 
-
 	//Montages
 
 	UPROPERTY(EditDefaultsOnly, Category = "Animation Properties")
@@ -174,56 +182,74 @@ public:
 	UAnimMontage* MontagePass;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Animation Properties")
+	UAnimMontage* MontageCross;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Animation Properties")
 	UAnimMontage* MontagePossession;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Animation Properties")
 	UAnimMontage* MontageTackled;
 
 
+	//Event Related
+
+	UPROPERTY(BlueprintReadWrite, Category = "Event Booleans")
+	bool bKickOff = false;
+
+	UPROPERTY(BlueprintReadWrite, Category = "Event Booleans")
+	bool bThrowIn = false;
+
+	UPROPERTY(BlueprintReadWrite, Category = "Event Booleans")
+	bool bCorner = false;
+
+	UPROPERTY(BlueprintReadWrite, Category = "Event Booleans")
+	bool bGoalKick = false;
+
+	UFUNCTION(BlueprintCallable, Category = "Event Booleans")
+	void CheckEvents();
+
+	//Available Actions
+
+	UPROPERTY(BlueprintReadWrite, Category = "Available Actions")
+	bool bCanCharge = true;
+
+	UPROPERTY(BlueprintReadWrite, Category = "Available Actions")
+	bool bCanPossess = true;
+
+	UPROPERTY(BlueprintReadWrite, Category = "Available Actions")
+	bool bCanSwitch = true;
+
+	UPROPERTY(BlueprintReadWrite, Category = "Available Actions")
+	bool bCanShoot = true;
+
+	UPROPERTY(BlueprintReadWrite, Category = "Available Actions")
+	bool bCanPass = true;
+
+	UPROPERTY(BlueprintReadWrite, Category = "Available Actions")
+	bool bCanTackle = true;
+
+	UPROPERTY(BlueprintReadWrite, Category = "Available Actions")
+	bool bCanMove = true;
+
+	//Actions Booleans
+
+	UPROPERTY(BlueprintReadWrite, Category = "Actions Booleans")
+	bool bHasBall = false;
+
+	UPROPERTY(BlueprintReadWrite, Category = "Actions Booleans")
+	bool bTeamHasBall = false;
+
+	UPROPERTY(BlueprintReadWrite, Category = "Actions Booleans")
+	bool bWantsBall = false;
+
+	UPROPERTY(BlueprintReadWrite, Category = "Actions Booleans")
+	bool bPlaysAtHome = false;
+	
+
 	//Player Properties
 
 	UPROPERTY(BlueprintReadWrite, Category = "Player Properties")
 	AFootball* KnownBall = nullptr;
-
-
-	UPROPERTY(BlueprintReadWrite, Category = "Player Properties")
-	bool bKickOff = false;
-
-	UPROPERTY(BlueprintReadWrite, Category = "Player Properties")
-	bool bCorner = false;
-
-	UPROPERTY(BlueprintReadWrite, Category = "Player Properties")
-	bool bGoalKick = false;
-
-	UPROPERTY(BlueprintReadWrite, Category = "Player Properties")
-	bool bHasBall = false;
-
-	UPROPERTY(BlueprintReadWrite, Category = "Player Properties")
-	bool bTeamHasBall = false;
-
-	UPROPERTY(BlueprintReadWrite, Category = "Player Properties")
-	bool bWantsBall = false;
-
-	UPROPERTY(BlueprintReadWrite, Category = "Player Properties")
-	bool bCanCharge = true;
-
-	UPROPERTY(BlueprintReadWrite, Category = "Player Properties")
-	bool bCanSwitch = true;
-
-	UPROPERTY(BlueprintReadWrite, Category = "Player Properties")
-	bool bCanShoot = true;
-
-	UPROPERTY(BlueprintReadWrite, Category = "Player Properties")
-	bool bCanPass = true;
-
-	UPROPERTY(BlueprintReadWrite, Category = "Player Properties")
-	bool bCanTackle = true;
-
-	UPROPERTY(BlueprintReadWrite, Category = "Player Properties")
-	bool bCanMove = true;
-
-	UPROPERTY(BlueprintReadWrite, Category = "Player Properties")
-	bool bPlaysAtHome = false;
 
 	UPROPERTY(BlueprintReadWrite, Category = "Player Properties")
 	FVector CurrentPosition;
@@ -236,19 +262,6 @@ public:
 
 	UPROPERTY(BlueprintReadOnly, Category = "Player Properties")
 	TArray<AActor*> teamColleagues;
-	
-	//Actions Booleans
-	
-	
-	UPROPERTY(BlueprintReadWrite, Category = "Boolean Override")
-	bool needsBall = false;
-	
-	UPROPERTY(BlueprintReadWrite, Category = "Boolean Override")
-	bool isPowering = false;
-
-	UPROPERTY(BlueprintReadWrite, Category = "Action Boolean")
-	bool isChasingBall = false;
-
 
 	
 	//Character Properties
@@ -270,8 +283,12 @@ public:
 	
 	UPROPERTY(BlueprintReadOnly, Category = "Character Properties")
 	FVector2D moveAxis;
-	
 
+	UPROPERTY(BlueprintReadOnly, Category = "Character Properties")
+	FVector moveVector;
+
+	UPROPERTY(BlueprintReadWrite, Category = "Character Properties")
+	float currentOverall;
 
 #pragma region Overlap Related
 	

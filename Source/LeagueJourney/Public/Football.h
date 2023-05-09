@@ -42,8 +42,6 @@ public:
 
 	UPROPERTY(VisibleAnywhere,BlueprintReadOnly)
 	class UStaticMeshComponent* Com_Mesh;
-	
-	FHitResult PerformRaycast();
 
 	UFUNCTION(BlueprintCallable)
 	void UnPossess();
@@ -53,6 +51,7 @@ public:
 	UFUNCTION()
 	void Shoot(float _distance, FVector _direction, float _force, float _charge);
 	void Pass(AActor* _where, AActor* _from, float _force, float _charge);
+	void Cross(AActor* _where, AActor* _from, float _force, float _charge);
 
 	UFUNCTION()
 	void FollowDaddy();

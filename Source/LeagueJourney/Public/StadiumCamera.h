@@ -44,7 +44,11 @@ public:
 	UPROPERTY(BlueprintReadOnly)
 	AActor* SpawnedFootball;
 
-	float minmaxYposition = 3000;
+	UPROPERTY(EditDefaultsOnly)
+	float MinZoom = 1000.0;
+
+	UPROPERTY(EditDefaultsOnly)
+	float MaxZoom = 5000.0;
 
 #pragma endregion
 

@@ -131,7 +131,7 @@ void AFootball::CheckPossession(bool _bHome, bool _bIgnore) {
 void AFootball::Shoot(float _distance, FVector _direction, float _force, float _charge){
 	UnPossess();
 	
-	_direction.Normalize();
+	//_direction.Normalize();
 	Com_Collision->SetAllPhysicsLinearVelocity(FVector::Zero(), false);
 
 
@@ -140,10 +140,18 @@ void AFootball::Shoot(float _distance, FVector _direction, float _force, float _
 	FVector ShootVector = _direction * speed;
 
 
-	ShootVector.Z = FMath::Clamp(_charge * 700.0 + FMath::FRandRange(0.0, 1000.0 * DistanceFactor), 0, 1700);
-	ShootVector.X += FMath::Clamp(FMath::FRandRange(DistanceFactor* -1000, DistanceFactor * 1000), -1300, 1300);
+	ShootVector.Z = FMath::Clamp(_charge * 1000.0 + FMath::FRandRange(0.0, 1000.0 * DistanceFactor), 0, 2000.0);
+	ShootVector.X += FMath::Clamp(FMath::FRandRange(DistanceFactor * -700, DistanceFactor * 700), -1300, 1300);
+
+	FVector TossVelocity;
+	FCollisionResponseParams _par;
+	TArray<AActor*> _ignore = { this };
+
+	//DrawDebugSphere(GetWorld(), _direction, 50, 16, FColor::Green, false, 15, 0, 20);
+	UGameplayStatics::SuggestProjectileVelocity(GetWorld(), TossVelocity, GetActorLocation(), _direction, speed, false, 0, 0, ESuggestProjVelocityTraceOption::DoNotTrace, _par, _ignore, true);
 	
-	Com_Collision->AddImpulse(ShootVector, NAME_None, true);
+
+	Com_Collision->SetPhysicsLinearVelocity(TossVelocity);
 
 }
 
@@ -162,7 +170,7 @@ void AFootball::Pass(AActor* _where, AActor* _from, float _force, float _charge)
 		{
 			_charge = FMath::Clamp(_charge, 0, 0.3);
 		}
-		float ballSpeed = 2000.0 + FMath::Clamp(_charge, 0, (Distance <= 500) ? .5 : 1) * (_force / 20 * 3500.0);
+		float ballSpeed = 1800.0 + FMath::Clamp(_charge, 0, (Distance <= 500) ? .5 : 1) * (_force / 20 * 1800.0);
 
 		float Time = Distance / ballSpeed;
 		Predicted_Position = _where->GetActorLocation() + (_where->GetVelocity() * Time);
@@ -173,8 +181,15 @@ void AFootball::Pass(AActor* _where, AActor* _from, float _force, float _charge)
 
 		FVector direction = (Predicted_Position - GetActorLocation()).GetSafeNormal();
 		direction *= ballSpeed;
-		direction.Z = 500.0 * _charge;
-		Com_Collision->AddImpulse(direction, NAME_None, true);
+
+		FVector TossVelocity;
+		FCollisionResponseParams _par;
+		TArray<AActor*> _ignore = { this, _from, _where };
+
+		UGameplayStatics::SuggestProjectileVelocity(GetWorld(), TossVelocity, GetActorLocation(), Predicted_Position, ballSpeed, false, 35, 0, ESuggestProjVelocityTraceOption::DoNotTrace, _par, _ignore, false);
+		TossVelocity.Z = (500.0 * _charge);
+
+		Com_Collision->SetPhysicsLinearVelocity(TossVelocity);
 	}
 	else
 	{
@@ -183,4 +198,52 @@ void AFootball::Pass(AActor* _where, AActor* _from, float _force, float _charge)
 
 
 	
+}
+
+void AFootball::Cross(AActor* _where, AActor* _from, float _force, float _charge)
+{
+	UnPossess();
+	Com_Collision->SetAllPhysicsLinearVelocity(FVector::Zero(), false);
+
+	FVector Predicted_Position;
+
+	if (_where)
+	{
+
+		float Distance = FVector::Distance(_where->GetActorLocation(), GetActorLocation());
+
+		if (Distance <= 500)
+		{
+			_charge = FMath::Clamp(_charge, 0, 0.3);
+		}
+		float ballSpeed = 5000.0 + _charge * (_force / 20 * 5000.0);
+
+		float Time = Distance / ballSpeed;
+		Predicted_Position = _where->GetActorLocation() + (_where->GetVelocity() * Time);
+
+		DrawDebugSphere(GetWorld(), Predicted_Position, 50, 16, FColor::Red, false, 15, 0, 20);
+		DrawDebugSphere(GetWorld(), _where->GetActorLocation(), 50, 16, FColor::Green, false, 15, 0, 20);
+		DrawDebugDirectionalArrow(GetWorld(), _where->GetActorLocation(), Predicted_Position, 50, FColor::Blue, false, 15, 0, 20);
+
+		FVector direction = (Predicted_Position - GetActorLocation()).GetSafeNormal();
+		direction *= ballSpeed;
+
+		FVector TossVelocity;
+		FCollisionResponseParams _par;
+		TArray<AActor*> _ignore = { this, _from, _where };
+
+		Com_Collision->SetPhysicsLinearVelocity(FVector::ZeroVector);
+		Com_Collision->SetPhysicsAngularVelocityInDegrees(FVector::ZeroVector);
+
+		UGameplayStatics::SuggestProjectileVelocity_CustomArc(GetWorld(), TossVelocity, GetActorLocation(), Predicted_Position, bIsPosessed, .7f);
+		//UGameplayStatics::SuggestProjectileVelocity(GetWorld(), TossVelocity, GetActorLocation(), _where->GetActorLocation(), ballSpeed, true, 0, 0, ESuggestProjVelocityTraceOption::DoNotTrace, _par, _ignore, true);
+
+		//UGameplayStatics::SuggestProjectileVelocity_CustomArc(GetWorld(), TossVelocity, GetActorLocation(), _where->GetActorLocation(), 0, .9 - _charge * .3);
+		Com_Collision->SetPhysicsLinearVelocity(TossVelocity);
+		
+	}
+	else
+	{
+
+	}
 }

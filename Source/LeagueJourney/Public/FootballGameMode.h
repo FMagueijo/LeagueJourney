@@ -33,10 +33,6 @@ protected:
 	//Functions
 	void SpawnPawn(FFootballer FootballerStruct, bool isHome);
 
-
-
-	void DeAllSpawnPawns();
-
 	void SpawnCamera();
 
 	void SpawnFootball();
@@ -155,11 +151,17 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void ChooseStartingPawn();
 
+
+	//Events Methods
+
 	UFUNCTION(BlueprintCallable)
 	void CreateKickOffEvent(AFootballCharacter* whoStarts);
 
 	UFUNCTION(BlueprintCallable)
 	void CreateGoalKickEvent(AFootballCharacter* _whoGets);
+
+	UFUNCTION(BlueprintCallable)
+	void CreateThrowInEvent(AFootballCharacter* _whoGets, FVector _where = FVector::ZeroVector, FRotator _setRot = FRotator::ZeroRotator);
 
 	UFUNCTION(BlueprintCallable)
 	void SetAllActions(bool _action);

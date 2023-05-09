@@ -14,9 +14,9 @@ UFootballMatchInstance::UFootballMatchInstance()
 	AllHomePositions.Add("GK", FVector(0, 5400.0, 10));
 
 	AllHomePositions.Add("LB", FVector(-2300, 4300, 10));
-	AllHomePositions.Add("LCB", FVector(-1000, 4800, 10));
-	AllHomePositions.Add("CB", FVector(0, 4800, 10));
-	AllHomePositions.Add("RCB", FVector(1000, 4800, 10));
+	AllHomePositions.Add("LCB", FVector(-750, 4300, 10));
+	AllHomePositions.Add("CB", FVector(0, 4300, 10));
+	AllHomePositions.Add("RCB", FVector(750, 4300, 10));
 	AllHomePositions.Add("RB", FVector(2300, 4300, 10));
 
 	AllHomePositions.Add("LM", FVector(-2600, 2000, 10));
@@ -36,9 +36,9 @@ UFootballMatchInstance::UFootballMatchInstance()
 	AllAwayPositions.Add("GK", FVector(0, -5360.0, 10));
 
 	AllAwayPositions.Add("LB", FVector(2300, -4300, 10));
-	AllAwayPositions.Add("LCB", FVector(1000, -4800, 10));
-	AllAwayPositions.Add("CB", FVector(0, -4800, 10));
-	AllAwayPositions.Add("RCB", FVector(-1000, -4800, 10));
+	AllAwayPositions.Add("LCB", FVector(750, -4300, 10));
+	AllAwayPositions.Add("CB", FVector(0, -4300, 10));
+	AllAwayPositions.Add("RCB", FVector(-750, -4300, 10));
 	AllAwayPositions.Add("RB", FVector(-2300, -4300, 10));
 
 	AllAwayPositions.Add("LM", FVector(2600, -2000, 10));

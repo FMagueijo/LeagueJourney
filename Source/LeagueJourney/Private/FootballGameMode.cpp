@@ -53,6 +53,7 @@ void AFootballGameMode::BeginPlay()
 		TArray<AActor*> _newPawns = pawnElevenHome;
 		_newPawns.Remove(_jogador);
 		Cast<AFootballCharacter>(_jogador)->teamColleagues = _newPawns;
+
 	}
 	for (AActor* _jogador : pawnElevenAway)
 	{
@@ -91,6 +92,8 @@ void AFootballGameMode::CreateKickOffEvent(AFootballCharacter* whoStarts)
 		whoStarts->bKickOff = true;
 		whoStarts->bCanPass = true;
 		whoStarts->bCanCharge = true;
+		whoStarts->SetActorRotation(FRotator(0, (whoStarts->bPlaysAtHome) ? 90 : -90, 0));
+
 		if(whoStarts->bPlaysAtHome && !bSpecMode)
 		{
 			PC->Possess(whoStarts);
@@ -104,13 +107,16 @@ void AFootballGameMode::CreateGoalKickEvent(AFootballCharacter* _whoGets)
 	{
 		SetAllActions(true);
 		_whoGets->bKickOff = false;
+		_whoGets->bThrowIn = false;
 		_whoGets->bGoalKick = false;
 		_whoGets->bCorner = false;
 		bMatchPaused = false;
 	}
 	else
 	{
+		SpawnedFootball->Possess(_whoGets);
 		ReSpawn();
+		SpawnedFootball->Possess(_whoGets);
 		bMatchPaused = true;
 		SetAllActions(false);
 
@@ -119,8 +125,45 @@ void AFootballGameMode::CreateGoalKickEvent(AFootballCharacter* _whoGets)
 		_whoGets->bCanCharge = true;
 		_whoGets->bGoalKick = true;
 
-		SpawnedFootball->Possess(_whoGets);
 		
+		if (_whoGets->bPlaysAtHome && !bSpecMode)
+		{
+			PC->Possess(_whoGets);
+		}
+	}
+}
+
+void AFootballGameMode::CreateThrowInEvent(AFootballCharacter* _whoGets, FVector _where, FRotator _setRot)
+{
+	if (_whoGets->bThrowIn)
+	{
+		SetAllActions(true);
+
+		_whoGets->bThrowIn = true;
+		_whoGets->bGoalKick = false;
+		_whoGets->bKickOff = false;
+		_whoGets->bCorner = false;
+
+		bMatchPaused = false;
+	}
+	else
+	{
+		SetAllActions(false);
+		_whoGets->SetActorLocation(_where);
+		_whoGets->SetActorRotation(_setRot);
+		SpawnedFootball->Possess(_whoGets);
+
+
+		_whoGets->bThrowIn = true;
+		_whoGets->bGoalKick = false;
+		_whoGets->bKickOff = false;
+		_whoGets->bCorner = false;
+
+		_whoGets->bCanPass = true;
+		_whoGets->bCanCharge = true;
+
+		bMatchPaused = true;
+
 		if (_whoGets->bPlaysAtHome && !bSpecMode)
 		{
 			PC->Possess(_whoGets);
@@ -153,9 +196,9 @@ void AFootballGameMode::Tick(float DeltaSeconds)
 
 			const float A_AwayValue = (Cast<AFootballCharacter>(SpawnedFootball->DaddyPawn)->stats.CurrentPosition == "GK")? 0 : (attackPercentageAway += DeltaSeconds / 2);
 			
-			const float D_HomeValue = 2 - A_AwayValue - 1.5;
+			const float D_HomeValue = 2 - (A_AwayValue + 1.0);
 
-			const float D_AwayValue = 2 - A_HomeValue - 1.5;
+			const float D_AwayValue = 2 - (A_HomeValue + 1.0);
 
 			(bTeamHasBallHome) ? HomePoss += DeltaSeconds : AwayPoss += DeltaSeconds;
 			TotalPoss = HomePoss + AwayPoss;
@@ -163,8 +206,8 @@ void AFootballGameMode::Tick(float DeltaSeconds)
 			PerHomePoss = (HomePoss / TotalPoss);
 			PerAwayPoss = (AwayPoss / TotalPoss);
 
-			attackPercentageHome = (bTeamHasBallHome) ? FMath::Clamp(A_HomeValue, 0.0, 1.7) : FMath::Clamp(D_HomeValue, 0.0, 1.7);
-			attackPercentageAway = (bTeamHasBallAway) ? FMath::Clamp(A_AwayValue, 0.0, 1.7) : FMath::Clamp(D_AwayValue, 0.0, 1.7);
+			attackPercentageHome = (bTeamHasBallHome) ? FMath::Clamp(A_HomeValue, 0.0, 2.0) : FMath::Clamp(D_HomeValue - 0.5, 0.0, 2.0);
+			attackPercentageAway = (bTeamHasBallAway) ? FMath::Clamp(A_AwayValue, 0.0, 2.0) : FMath::Clamp(D_AwayValue - 0.5, 0.0, 2.0);
 		}
 		else
 		{

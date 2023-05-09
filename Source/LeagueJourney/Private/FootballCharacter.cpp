@@ -12,6 +12,7 @@
 #include "Kismet/KismetMathLibrary.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "Components/CapsuleComponent.h"
+#include "Engine/InputDelegateBinding.h"
 #include "GameFramework/CharacterMovementComponent.h"
 
 // Sets default values
@@ -20,6 +21,45 @@ AFootballCharacter::AFootballCharacter()
 	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 	BallPosessArea = CreateDefaultSubobject<USphereComponent>(FName("BallPosessArea"));
+}
+
+void AFootballCharacter::PawnClientRestart()
+{
+	if (PC && PC->IsLocalController())
+	{
+		// Handle camera possession
+		if (PC->bAutoManageActiveCameraTarget)
+		{
+			PC->AutoManageActiveCameraTarget(this);
+		}
+
+		// Set up player input component, if there isn't one already.
+		if (InputComponent == nullptr)
+		{
+			InputComponent = CreatePlayerInputComponent();
+			if (InputComponent)
+			{
+				SetupPlayerInputComponent(InputComponent);
+				InputComponent->RegisterComponent();
+				if (UInputDelegateBinding::SupportsInputDelegate(GetClass()))
+				{
+					InputComponent->bBlockInput = bBlockInput;
+					UInputDelegateBinding::BindInputDelegatesWithSubojects(this, InputComponent);
+				}
+			}
+		}
+	}
+}
+
+void AFootballCharacter::Restart()
+{
+	UPawnMovementComponent* MovementComponent = GetMovementComponent();
+	if (MovementComponent)
+	{
+		//MovementComponent->StopMovementImmediately();
+	}
+	//ConsumeMovementInputVector();
+	//RecalculateBaseEyeHeight();
 }
 
 
@@ -89,6 +129,14 @@ void AFootballCharacter::Tick(float DeltaTime)
 		{
 			bWantsBall = (FVector::Distance(KnownBall->GetActorLocation(), GetActorLocation()) <= (500 + coverageDistance * ((!bTeamHasBall) ? 1 : 0)));
 		}
+
+		if(PC->GetPawn() == this && moveAxis.Length() < .4 && !bHasBall)
+		{
+			FPredictProjectilePathResult _result;
+			UGameplayStatics::PredictProjectilePath(GetWorld(), FPredictProjectilePathParams(1, KnownBall->GetActorLocation(), KnownBall->GetVelocity(), 1.0), _result);
+			
+			AddMovementInput(KnownBall->GetActorLocation() + KnownBall->GetVelocity().GetSafeNormal() - GetActorLocation());
+		}
 	}
 
 	//Find Closest Team Pawn + Add To Charge Percentage
@@ -104,7 +152,7 @@ void AFootballCharacter::Tick(float DeltaTime)
 
 	if (GetVelocity().Length() > 0)
 	{
-		stamina = FMath::Clamp(stamina -= (.005f + (1.0f / stats.Stamina) * .005f) * DeltaTime, 0.0f, 1.0f);
+		stamina = FMath::Clamp(stamina -= (.0005f + (.01f / stats.Stamina)) * DeltaTime, 0.0f, 1.0f);
 		
 	}
 
@@ -116,7 +164,7 @@ void AFootballCharacter::Tick(float DeltaTime)
 	DrawDebugString(GetWorld(), GetActorLocation() + FVector::UpVector * 60,
 	                "Has Ball : " + FString::SanitizeFloat(bHasBall), 0, FColor::Green, .01, false, 1);
 
-
+	GetMaxPace();
 	//Team has ball?
 	teamHasBall(bPlaysAtHome);
 }
@@ -141,28 +189,25 @@ void AFootballCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputC
 
 		//One Shot Input
 
-		enhancedInputComponent->BindAction(SwitchAction, ETriggerEvent::Started, this,
-		                                   &AFootballCharacter::EnhancedSwitch);
+		enhancedInputComponent->BindAction(SwitchAction, ETriggerEvent::Started, this, &AFootballCharacter::EnhancedSwitch);
 
-		enhancedInputComponent->BindAction(TackleAction, ETriggerEvent::Started, this,
-		                                   &AFootballCharacter::EnhancedTackle);
+		enhancedInputComponent->BindAction(TackleAction, ETriggerEvent::Started, this, &AFootballCharacter::EnhancedTackle);
 
 		//Charging Inputs
 
-		enhancedInputComponent->BindAction(ShootAction, ETriggerEvent::Started, this,
-		                                   &AFootballCharacter::EnhancedCharge);
+		enhancedInputComponent->BindAction(ShootAction, ETriggerEvent::Started, this, &AFootballCharacter::EnhancedCharge);
 
-		enhancedInputComponent->BindAction(PassAction, ETriggerEvent::Started, this,
-		                                   &AFootballCharacter::EnhancedCharge);
+		enhancedInputComponent->BindAction(PassAction, ETriggerEvent::Started, this, &AFootballCharacter::EnhancedCharge);
 
+		enhancedInputComponent->BindAction(CrossAction, ETriggerEvent::Started, this, &AFootballCharacter::EnhancedCharge);
 
 		//Complete Charge
 
-		enhancedInputComponent->BindAction(ShootAction, ETriggerEvent::Triggered, this,
-		                                   &AFootballCharacter::EnhancedShot);
+		enhancedInputComponent->BindAction(ShootAction, ETriggerEvent::Triggered, this, &AFootballCharacter::EnhancedShot);
 
-		enhancedInputComponent->BindAction(PassAction, ETriggerEvent::Triggered, this,
-		                                   &AFootballCharacter::EnhancedPass);
+		enhancedInputComponent->BindAction(PassAction, ETriggerEvent::Triggered, this, &AFootballCharacter::EnhancedPass);
+
+		enhancedInputComponent->BindAction(CrossAction, ETriggerEvent::Triggered, this, &AFootballCharacter::EnhancedCross);
 	}
 }
 
@@ -186,51 +231,16 @@ void AFootballCharacter::EnhancedCharge(const FInputActionValue& Value)
 
 void AFootballCharacter::EnhancedMove(const FInputActionValue& Value)
 {
+	moveAxis = Value.Get<FVector2D>();
 	if (!GetMesh()->GetAnimInstance()->IsAnyMontagePlaying() && bCanMove)
 	{
-		FVector2D CurrentValue = Value.Get<FVector2D>();
-		moveAxis = CurrentValue;
-		CurrentValue.Normalize();
-		FVector FinalValue = (SpawnedCamera != nullptr)
-			                     ? Cast<AStadiumCamera>(SpawnedCamera)->Com_Camera->GetForwardVector() * CurrentValue.Y
-			                     + Cast<AStadiumCamera>(SpawnedCamera)->Com_Camera->GetRightVector() * CurrentValue.X
-			                     : CurrentPosition;
-		FinalValue.Z = 0;
-
-		GetCharacterMovement()->MaxWalkSpeed = (FinalValue.Length() > .8)
-			                                       ? 300.0 + stamina * (SprintPercentage * (stats.Pace / 20.0 * 300))
-			                                       : 300;
-		GetCharacterMovement()->RotationRate = (FinalValue.Length() > .8)
-			                                       ? FRotator(0, 180 + SprintPercentage * 180, 0)
-			                                       : FRotator::ZeroRotator;
-
-
-		FinalValue.Normalize();
-		AddMovementInput(FinalValue);
-	}
-	else
-	{
-		if (!GetMesh()->GetAnimInstance()->IsAnyMontagePlaying())
+		if(SprintPercentage > .7)
 		{
-			FVector2D CurrentValue = Value.Get<FVector2D>();
-			moveAxis = CurrentValue;
-			CurrentValue.Normalize();
-			FVector FinalValue = (SpawnedCamera != nullptr)
-				                     ? Cast<AStadiumCamera>(SpawnedCamera)->Com_Camera->GetForwardVector() *
-				                     CurrentValue.Y + Cast<AStadiumCamera>(SpawnedCamera)->Com_Camera->GetRightVector()
-				                     * CurrentValue.X
-				                     : CurrentPosition;
-			FinalValue.Z = GetActorLocation().Z;
-
-			GetCharacterMovement()->MaxWalkSpeed = (FinalValue.Length() > .8)
-				                                       ? 300.0 + stamina * (SprintPercentage * (stats.Pace / 20.0 *
-					                                       200))
-				                                       : 300;
-			GetCharacterMovement()->RotationRate = (FinalValue.Length() > .8)
-				                                       ? FRotator(0, 180 + SprintPercentage * 180, 0)
-				                                       : FRotator::ZeroRotator;
-
-			SetActorRotation(UKismetMathLibrary::FindLookAtRotation(GetActorLocation(), FinalValue));
+			AddMovementInput(GetActorForwardVector() + moveVector * FMath::Clamp((1.0 - SprintPercentage), 0.05, 1.0));
+		}
+		else
+		{
+			AddMovementInput(moveVector);
 		}
 	}
 }
@@ -256,6 +266,24 @@ void AFootballCharacter::EnhancedPass(const FInputActionValue& Value)
 		{
 			bIsCharging = false;
 			PlayAnimMontage(MontagePass, 1, EName::None);
+		}
+	}
+	else
+	{
+		bIsCharging = false;
+	}
+}
+
+void AFootballCharacter::EnhancedCross(const FInputActionValue& Value)
+{
+	if (bIsCharging && bHasBall && bTeamHasBall && bCanPass && !Cast<AFootballGameMode>(CurrentGameMode)->bCountDown)
+	{
+		if (ChargePercentage >= 1 || !Value.Get<bool>())
+		{
+			bIsCharging = false;
+			FPredictProjectilePathParams _params;
+			
+			PlayAnimMontage(MontageCross, 1, EName::None);
 		}
 	}
 	else
@@ -324,10 +352,13 @@ void AFootballCharacter::Shoot()
 		else
 		{
 
-			FRotator _newRot = UKismetMathLibrary::FindLookAtRotation(GetActorLocation(), GetActorLocation()+GetActorForwardVector());
+			FRotator _newRot = UKismetMathLibrary::FindLookAtRotation(GetActorLocation(), GetActorLocation()+moveVector.GetSafeNormal());
 			_newRot.Pitch = this->GetActorRotation().Pitch;
 			SetActorRotation(_newRot);
-			Cast<AFootball>(KnownBall)->Shoot(_distance, GetActorForwardVector(), stats.Shooting, ChargePercentage);
+			DrawDebugSphere(GetWorld(), GetActorLocation() + moveVector, 50, 16, FColor::Green, false, 15, 0, 20);
+
+			GEngine->AddOnScreenDebugMessage(-1, 20, FColor::Red, moveVector.ToString());
+			Cast<AFootball>(KnownBall)->Shoot(_distance, GetActorLocation() + GetActorForwardVector() * 500, stats.Shooting, ChargePercentage);
 		}
 	}
 }
@@ -336,84 +367,140 @@ void AFootballCharacter::Pass()
 {
 	if (bHasBall && bCanPass && !Cast<AFootballGameMode>(CurrentGameMode)->bCountDown)
 	{
-		if(PlayerToPassTo == nullptr)
+		if(PC->GetPawn() != this)
 		{
-			if (PC->GetPawn() == this)
-			{
-				float x;
-				const FVector TraceStart = GetActorLocation() + GetActorForwardVector() * (200 + ChargePercentage * (stats.
-					Passing / 20.0 * 4000));
-				PlayerToPassTo = UGameplayStatics::FindNearestActor(TraceStart, teamColleagues, x);
-			}
-			else
+			if (PlayerToPassTo == nullptr && teamColleagues.Num() > 0)
 			{
 				ChargePercentage = FMath::FRandRange(0.1, 1.0);
 				TArray<AActor*> AllTeamPlayer;
 
 				for (AActor* _plaer : teamColleagues)
 				{
-					if (bPlaysAtHome)
+					if ((bPlaysAtHome) ? _plaer->GetActorLocation().Y < GetActorLocation().Y : _plaer->GetActorLocation().Y > GetActorLocation().Y)
 					{
-						if (_plaer->GetActorLocation().Y < GetActorLocation().Y)
-						{
-							AllTeamPlayer.Add(_plaer);
-						}
+						AllTeamPlayer.Add(_plaer);
 					}
-					else
-					{
-						if (_plaer->GetActorLocation().Y > GetActorLocation().Y)
-						{
-							AllTeamPlayer.Add(_plaer);
-						}
-					}
-
 				}
 
-				float x;
 				if (AllTeamPlayer.Num() > 0)
 				{
-					if (FMath::RandRange(0.0, 1.0) > .5)
+					for (AActor* _plaer : AllTeamPlayer)
 					{
-						PlayerToPassTo = AllTeamPlayer[FMath::RandRange(0, AllTeamPlayer.Num() - 1)];
+						if (Cast<AFootballCharacter>(_plaer)->currentOverall >= currentOverall)
+						{
+							PlayerToPassTo = _plaer;
+							break;
+						}
 					}
-					else
-					{
-						PlayerToPassTo = UGameplayStatics::FindNearestActor(GetActorLocation(), AllTeamPlayer, x);
-					}
+				}
+			}
+
+			if (PlayerToPassTo == nullptr)
+			{
+				if (FMath::RandRange(0.0, 1.0) > .5)
+				{
+					PlayerToPassTo = teamColleagues[FMath::RandRange(0, teamColleagues.Num() - 1)];
 				}
 				else
 				{
-					if (teamColleagues.Num() > 0)
-					{
-						if (FMath::RandRange(0.0, 1.0) > .5)
-						{
-							PlayerToPassTo = teamColleagues[FMath::RandRange(0, teamColleagues.Num() - 1)];
-						}
-						else
-						{
-							PlayerToPassTo = UGameplayStatics::FindNearestActor(GetActorLocation(), teamColleagues, x);
-						}
-					}
+					float x;
+					PlayerToPassTo = UGameplayStatics::FindNearestActor(GetActorLocation(), teamColleagues, x);
 				}
-
-
 			}
+		}
+		else
+		{
+			if(PlayerToPassTo == nullptr)
+			{
+				FVector _where = GetActorLocation() + moveVector.GetSafeNormal() * (200 + ChargePercentage * (stats.Passing / 20.0 * 4000));
+				float x;
+				PlayerToPassTo = UGameplayStatics::FindNearestActor(_where, teamColleagues, x);
+			}
+
+			
 		}
 
 		if(PlayerToPassTo)
 		{
-			(bKickOff) ? Cast<AFootballGameMode>(CurrentGameMode)->CreateKickOffEvent(this) : NULL;
-			if(stats.CurrentPosition == "GK")
-			{
-
-				(bGoalKick) ? Cast<AFootballGameMode>(CurrentGameMode)->CreateGoalKickEvent(this) : NULL;
-			}
-
+			(PC->GetPawn() == this) ? PC->Possess(Cast<APawn>(PlayerToPassTo)) : NULL;
 			FRotator _newRot = UKismetMathLibrary::FindLookAtRotation(GetActorLocation(), PlayerToPassTo->GetActorLocation());
 			_newRot.Pitch = this->GetActorRotation().Pitch;
 			SetActorRotation(_newRot);
+
 			Cast<AFootball>(KnownBall)->Pass(PlayerToPassTo, this, stats.Passing, ChargePercentage);
+			
+			CheckEvents();
 		}
+		
+	}
+}
+
+void AFootballCharacter::Cross()
+{
+	if (bHasBall && bCanPass && !Cast<AFootballGameMode>(CurrentGameMode)->bCountDown)
+	{
+		if (PC->GetPawn() != this)
+		{
+			if (PlayerToPassTo == nullptr && teamColleagues.Num() > 0)
+			{
+				ChargePercentage = FMath::FRandRange(0.1, 1.0);
+				TArray<AActor*> AllTeamPlayer;
+
+				for (AActor* _plaer : teamColleagues)
+				{
+					if ((bPlaysAtHome) ? _plaer->GetActorLocation().Y < GetActorLocation().Y : _plaer->GetActorLocation().Y > GetActorLocation().Y)
+					{
+						AllTeamPlayer.Add(_plaer);
+					}
+				}
+
+				if (AllTeamPlayer.Num() > 0)
+				{
+					for (AActor* _plaer : AllTeamPlayer)
+					{
+						if (Cast<AFootballCharacter>(_plaer)->currentOverall >= currentOverall)
+						{
+							PlayerToPassTo = _plaer;
+							break;
+						}
+					}
+				}
+			}
+
+			if (PlayerToPassTo == nullptr)
+			{
+				if (FMath::RandRange(0.0, 1.0) > .5)
+				{
+					PlayerToPassTo = teamColleagues[FMath::RandRange(0, teamColleagues.Num() - 1)];
+				}
+				else
+				{
+					float x;
+					PlayerToPassTo = UGameplayStatics::FindNearestActor(GetActorLocation(), teamColleagues, x);
+				}
+			}
+		}
+		else
+		{
+			if (PlayerToPassTo == nullptr)
+			{
+				FVector _where = GetActorLocation() + moveVector.GetSafeNormal() * (200 + ChargePercentage * (stats.Passing / 20.0 * 4000));
+				float x;
+				PlayerToPassTo = UGameplayStatics::FindNearestActor(_where, teamColleagues, x);
+			}
+		}
+
+		if (PlayerToPassTo)
+		{
+			(PC->GetPawn() == this) ? PC->Possess(Cast<APawn>(PlayerToPassTo)) : NULL;
+			FRotator _newRot = UKismetMathLibrary::FindLookAtRotation(GetActorLocation(), PlayerToPassTo->GetActorLocation());
+			_newRot.Pitch = this->GetActorRotation().Pitch;
+			SetActorRotation(_newRot);
+
+			Cast<AFootball>(KnownBall)->Cross(PlayerToPassTo, this, stats.Passing, ChargePercentage);
+			CheckEvents();
+		}
+
 	}
 }
 
@@ -500,9 +587,33 @@ void AFootballCharacter::GetTackled()
 
 void AFootballCharacter::GetMaxPace()
 {
+	if(PC->GetPawn() == this)
+	{
+		FVector2D CurrentValue = moveAxis;
+		CurrentValue.Normalize();
+		FVector FinalValue = (SpawnedCamera != nullptr)
+			? Cast<AStadiumCamera>(SpawnedCamera)->Com_Camera->GetForwardVector() * CurrentValue.Y
+			+ Cast<AStadiumCamera>(SpawnedCamera)->Com_Camera->GetRightVector() * CurrentValue.X
+			: CurrentPosition;
+		FinalValue.Z = 0;
+		moveVector = FinalValue;
+
+		GetCharacterMovement()->MaxWalkSpeed = (FinalValue.Length() > .8)
+			? 300.0 + stamina * (SprintPercentage * (stats.Pace / 20.0 * 300))
+			: 300;
+		GetCharacterMovement()->RotationRate = FRotator(0, 360 - SprintPercentage * 230, 0);
+
+	}
+	else
+	{
+
+		GetCharacterMovement()->MaxWalkSpeed = 300.0 + stamina * (((bTeamHasBall) ? 1 : 1.5) * (stats.Pace / 20.0 * 300));
+		GetCharacterMovement()->RotationRate = FRotator(0, 180 + 1 * 180, 0);
+	}
 	
-	GetCharacterMovement()->MaxWalkSpeed = 300.0 + stamina * (((bTeamHasBall) ? 1 : 1.5) * (stats.Pace / 20.0 * 300));
-	GetCharacterMovement()->RotationRate = FRotator(0, 180 + 1 * 180, 0);
+
+
+
 
 }
 
@@ -520,103 +631,49 @@ void AFootballCharacter::DifficultyToStats()
 	stats.Stamina *= _diff;
 }
 
+void AFootballCharacter::CheckEvents()
+{
+
+	//Events 
+	(bKickOff) ? Cast<AFootballGameMode>(CurrentGameMode)->CreateKickOffEvent(this) : NULL;
+	(bGoalKick) ? Cast<AFootballGameMode>(CurrentGameMode)->CreateGoalKickEvent(this) : NULL;
+	(bThrowIn) ? Cast<AFootballGameMode>(CurrentGameMode)->CreateThrowInEvent(this) : NULL;
+}
+
 void AFootballCharacter::FindClosestPawn(bool isHome)
 {
-	if (PC->GetPawn() == this)
+	const FVector TraceStart = GetActorLocation() + moveVector.GetSafeNormal() * (200 + ChargePercentage * (stats.Passing / 20.0 * 4000)); // Start the trace at a distance of 100 units from the player
+	const FVector BoxExtent = FVector(200 + ChargePercentage * (stats.Passing / 20.0 * 4000), 600 - (ChargePercentage * (20.0 / stats.Passing * 25.0)), 200);
+	
+
+	const TArray<TEnumAsByte<EObjectTypeQuery>> ObjectTypes = {
+		UEngineTypes::ConvertToObjectType(ECollisionChannel::ECC_Pawn)
+	}; // Query only pawns
+	const TArray<AActor*> ActorsToIgnore = { this }; // Ignore the current player's pawn
+
+	TArray<FHitResult> OutHits;
+
+	TArray<AActor*> _allPlayers;
+	UKismetSystemLibrary::BoxTraceMultiForObjects(GetWorld(), TraceStart, TraceStart, BoxExtent, GetActorRotation(),
+		ObjectTypes, false, ActorsToIgnore, EDrawDebugTrace::ForOneFrame,
+		OutHits, true);
+
+
+	for (FHitResult _hit : OutHits)
 	{
-		const FVector TraceStart = GetActorLocation() + GetActorForwardVector() * (200 + ChargePercentage * (stats.
-			Passing / 20.0 * 4000)); // Start the trace at a distance of 100 units from the player
-		const FVector BoxExtent = FVector(200 + ChargePercentage * (stats.Passing / 20.0 * 4000),
-			600 - (ChargePercentage * (20.0 / stats.Passing * 25.0)), 200);
-		// Set the dimensions of the box
-
-		const TArray<TEnumAsByte<EObjectTypeQuery>> ObjectTypes = {
-			UEngineTypes::ConvertToObjectType(ECollisionChannel::ECC_Pawn)
-		}; // Query only pawns
-		const TArray<AActor*> ActorsToIgnore = { this }; // Ignore the current player's pawn
-
-		TArray<FHitResult> OutHits;
-
-		TArray<AActor*> _allPlayers;
-		UKismetSystemLibrary::BoxTraceMultiForObjects(GetWorld(), TraceStart, TraceStart, BoxExtent, GetActorRotation(),
-			ObjectTypes, false, ActorsToIgnore, EDrawDebugTrace::ForOneFrame,
-			OutHits, true);
-
-
-		for (FHitResult _hit : OutHits)
+		if (Cast<AFootballCharacter>(_hit.GetActor())->bPlaysAtHome == bPlaysAtHome)
 		{
-			if (Cast<AFootballCharacter>(_hit.GetActor())->bPlaysAtHome == bPlaysAtHome)
-			{
-				_allPlayers.Add(_hit.GetActor());
-			}
+			_allPlayers.Add(_hit.GetActor());
 		}
-
-		if (_allPlayers.Num() > 0)
-		{
-			float x = 0;
-			PlayerToPassTo = UGameplayStatics::FindNearestActor(TraceStart * 2, _allPlayers, x);
-			DrawDebugSphere(GetWorld(), PlayerToPassTo->GetActorLocation(), 500, 16, FColor::Green);
-		}
-
 	}
-	else
+
+	if (_allPlayers.Num() > 0)
 	{
-		TArray<AActor*> _attackingColleagues;
-		TArray<AActor*> _defendingColleagues;
-
-		for (AActor* _footballer : teamColleagues)
-		{
-			if (_footballer->GetActorLocation().Y >= GetActorLocation().Y)
-			{
-				_attackingColleagues.Add(_footballer);
-			}
-			else
-			{
-				_defendingColleagues.Add(_footballer);
-			}
-		}
-
-		AActor* _currentNearest;
-		float distance = 0;
-		float _perAttack = FMath::RandRange(0.0, 1.0);
-		float _perShort = FMath::RandRange(0.0, 1.0);
-
-		if (_perAttack >= .4)
-		{
-			if (_attackingColleagues.Num() > 0)
-			{
-				_currentNearest = (_perShort >= .5)
-					? UGameplayStatics::FindNearestActor(
-						GetActorLocation(), _attackingColleagues, distance)
-					: _attackingColleagues[FMath::RandRange(0, _attackingColleagues.Num() - 1)];
-			}
-			else
-			{
-				_currentNearest = UGameplayStatics::FindNearestActor(GetActorLocation(), teamColleagues, distance);
-			}
-		}
-		else
-		{
-			if (_defendingColleagues.Num() > 0)
-			{
-				_currentNearest = (_perShort >= .5)
-					? UGameplayStatics::FindNearestActor(
-						GetActorLocation(), _defendingColleagues, distance)
-					: _defendingColleagues[FMath::RandRange(0, _defendingColleagues.Num() - 1)];
-			}
-			else
-			{
-				_currentNearest = UGameplayStatics::FindNearestActor(GetActorLocation(), teamColleagues, distance);
-			}
-		}
-
-		if (_currentNearest == nullptr)
-		{
-			_currentNearest = UGameplayStatics::FindNearestActor(GetActorLocation(), teamColleagues, distance);
-		}
-
-		PlayerToPassTo = _currentNearest;
+		float x = 0;
+		PlayerToPassTo = UGameplayStatics::FindNearestActor(TraceStart * 2, _allPlayers, x);
+		DrawDebugSphere(GetWorld(), PlayerToPassTo->GetActorLocation(), 500, 16, FColor::Green);
 	}
+	
 }
 
 void AFootballCharacter::teamHasBall(bool bHome)
@@ -662,7 +719,7 @@ void AFootballCharacter::OnPossessOverlapEnd(UPrimitiveComponent* OverlappedComp
 {
 	if (AFootball* ball = Cast<AFootball>(OtherActor))
 	{
-		if (!GetMesh()->GetAnimInstance()->IsAnyMontagePlaying())
+		if (!GetMesh()->GetAnimInstance()->IsAnyMontagePlaying() && bCanPossess)
 		{
 			Cast<AFootball>(OtherActor)->UnPossess();
 		}

@@ -45,24 +45,22 @@ void AStadiumCamera::Tick(float DeltaTime)
 
 	this->SetActorLocation(CameraCurrentPosition);*/
 
-	
+	if(const AFootball* _football = Cast<AFootball>(SpawnedFootball))
+	{
+		FVector MidPoint = (_football->bIsPosessed) ? _football->DaddyPawn->GetActorLocation() + _football->DaddyPawn->GetActorForwardVector() * 500 : _football->GetActorLocation() + _football->GetVelocity();
+		
+		MidPoint = FMath::Lerp(GetActorLocation(), MidPoint, DeltaTime / 2);
 
+		Com_Camera->SetWorldRotation(FMath::Lerp(Com_Camera->GetComponentRotation(), UKismetMathLibrary::FindLookAtRotation(Com_Camera->GetComponentLocation(), MidPoint), DeltaTime));
+		
+		SetActorLocation(MidPoint);
 
-	FVector Object1Position = (SpawnedFootball != nullptr) ? SpawnedFootball->GetActorLocation() : FVector(0, 0, 0);
-	FVector Object2Position = (PC->GetPawn() != nullptr) ? PC->GetPawn()->GetActorLocation() : FVector(0, 0, 0);
-
-	// Calculate the midpoint between the two objects
-	FVector Midpoint = (SpawnedFootball != nullptr) ? SpawnedFootball->GetActorLocation() : FVector(0, 0, 0);
-	Midpoint.Z = 0;
-	
-
-	Midpoint = FMath::Lerp(GetActorLocation(), Midpoint, DeltaTime);
-	SetActorLocation(Midpoint);
-	FRotator CameraFinalRotation = UKismetMathLibrary::FindLookAtRotation(Com_Camera->GetComponentLocation(), Midpoint);
-	Com_Camera->SetWorldRotation(CameraFinalRotation);
-
-	Com_SpringArm->TargetArmLength = FMath::Clamp(Com_SpringArm->TargetArmLength, 1300, 15000);
-	
+		if(const AFootballCharacter* _char = Cast<AFootballCharacter>(_football->DaddyPawn))
+		{
+			const float ArmLength = MaxZoom - ((MaxZoom-MinZoom) * _char->ChargePercentage);
+			Com_SpringArm->TargetArmLength = FMath::Lerp(Com_SpringArm->TargetArmLength, ArmLength, DeltaTime/2);
+		}
+	}
 }
 
 bool AStadiumCamera::isOnScreen(AActor* WhichActor)

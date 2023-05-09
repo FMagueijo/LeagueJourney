@@ -10,6 +10,7 @@
 #include "GameManager.h"
 #include "Football.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "GameFramework/PlayerState.h"
 #include "Kismet/KismetMathLibrary.h"
 
 AFootballerController::AFootballerController()
