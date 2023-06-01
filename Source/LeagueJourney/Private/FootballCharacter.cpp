@@ -116,37 +116,44 @@ void AFootballCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-
+	if(CurrentGameMode)
+	{
+		bIsCharging = (!Cast<AFootballGameMode>(CurrentGameMode)->bCountDown && bCanCharge && bIsCharging);
+	}
 	if (KnownBall)
 	{
+		if (bHasBall)
+		{
+			GEngine->AddOnScreenDebugMessage(-1, -1, FColor::Red, "bCharge ->" + FString::FromInt(bIsCharging));
+			GEngine->AddOnScreenDebugMessage(-1, -1, FColor::Red, "Percentage->" + FString::SanitizeFloat(ChargePercentage));
+			GEngine->AddOnScreenDebugMessage(-1, -1, FColor::Red, "Player to pass to->" + ((PlayerToPassTo) ? PlayerToPassTo->GetName() : "None"));
+			GEngine->AddOnScreenDebugMessage(-1, -1, FColor::Red, "Move vector->" + moveVector.ToString());
+			GEngine->AddOnScreenDebugMessage(-1, -1, FColor::Red, "Move Axis->" + moveAxis.ToString());
+			GEngine->AddOnScreenDebugMessage(-1, -1, FColor::Red, "Sprint Percentage->" + FString::SanitizeFloat(SprintPercentage));
+			GEngine->AddOnScreenDebugMessage(-1, -1, FColor::Red, "Distance to ball->" + FString::SanitizeFloat(FVector2D::Distance(FVector2D(KnownBall->GetActorLocation()), FVector2D(GetActorLocation()))));
+		}
 		//Ball Detection Check
+
+		bWantsBall = (FVector::Distance(KnownBall->GetActorLocation(), GetActorLocation()) <= (500 + coverageDistance * ((!bTeamHasBall) ? 1 : 0)));
 		
 
-		if(bWantsBall)
+		if(PC->GetPawn() == this && !bHasBall && FVector2D::Distance(FVector2D(KnownBall->GetActorLocation()), FVector2D(GetActorLocation())) <= 300)
 		{
-			bWantsBall = (FVector::Distance(KnownBall->GetActorLocation(), GetActorLocation()) <= (500 + coverageDistance * ((!bTeamHasBall) ? 1 : 0)/2));
-		}else
-		{
-			bWantsBall = (FVector::Distance(KnownBall->GetActorLocation(), GetActorLocation()) <= (500 + coverageDistance * ((!bTeamHasBall) ? 1 : 0)));
-		}
-
-		if(PC->GetPawn() == this && moveAxis.Length() < .4 && !bHasBall)
-		{
-			FPredictProjectilePathResult _result;
-			UGameplayStatics::PredictProjectilePath(GetWorld(), FPredictProjectilePathParams(1, KnownBall->GetActorLocation(), KnownBall->GetVelocity(), 1.0), _result);
-			
-			AddMovementInput(KnownBall->GetActorLocation() + KnownBall->GetVelocity().GetSafeNormal() - GetActorLocation());
+			AddMovementInput(KnownBall->GetActorLocation() + KnownBall->GetVelocity().GetSafeNormal() - GetActorLocation(), 1, true);
 		}
 	}
 
 	//Find Closest Team Pawn + Add To Charge Percentage
-
-	if (bIsCharging && !GetMesh()->GetAnimInstance()->IsAnyMontagePlaying())
+	if(!GetMesh()->GetAnimInstance()->IsAnyMontagePlaying())
 	{
-		FindClosestPawn(bPlaysAtHome);
-		ChargePercentage = FMath::Clamp(ChargePercentage += 1 * DeltaTime, 0.f, 1.f);
-		
+		if (bIsCharging)
+		{
+			FindClosestPawn(bPlaysAtHome);
+			ChargePercentage = FMath::Clamp(ChargePercentage += 1.2 * DeltaTime, 0.f, 1.f);
+		}
 	}
+	
+
 
 	//Decrement Stamina depending on player stats
 
@@ -180,11 +187,12 @@ void AFootballCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputC
 	{
 		//Always available Actions
 
-		enhancedInputComponent->BindAction(MoveAction, ETriggerEvent::Triggered, this,
-		                                   &AFootballCharacter::EnhancedMove);
+		enhancedInputComponent->BindAction(MoveAction, ETriggerEvent::Started, this, &AFootballCharacter::EnhancedMove);
+		enhancedInputComponent->BindAction(MoveAction, ETriggerEvent::Triggered, this, &AFootballCharacter::EnhancedMove);
+		enhancedInputComponent->BindAction(MoveAction, ETriggerEvent::Ongoing, this, &AFootballCharacter::EnhancedMove);
+		enhancedInputComponent->BindAction(MoveAction, ETriggerEvent::Completed, this, &AFootballCharacter::EnhancedMove);
 
-		enhancedInputComponent->BindAction(SprintAction, ETriggerEvent::Triggered, this,
-		                                   &AFootballCharacter::EnhancedSprint);
+		enhancedInputComponent->BindAction(SprintAction, ETriggerEvent::Triggered, this, &AFootballCharacter::EnhancedSprint);
 
 
 		//One Shot Input
@@ -247,22 +255,27 @@ void AFootballCharacter::EnhancedMove(const FInputActionValue& Value)
 
 void AFootballCharacter::EnhancedTackle(const FInputActionValue& Value)
 {
-	if (!bHasBall && !bTeamHasBall && !GetMesh()->GetAnimInstance()->IsAnyMontagePlaying() && bCanTackle)
+	if (bIsCharging)
 	{
 		PlayAnimMontage(MontageTackle, 1, EName::None);
-		if (ChargePercentage >= 1 || !Value.Get<bool>())
+		if ((ChargePercentage >= 1 || !Value.Get<bool>()) && !bHasBall && !bTeamHasBall && !GetMesh()->GetAnimInstance()->IsAnyMontagePlaying() && bCanTackle)
 		{
 			bIsCharging = false;
 			PlayAnimMontage(MontageShot, 1, EName::None);
 		}
 	}
+	else
+	{
+		ChargePercentage = 0.0;
+		bIsCharging = false;
+	}
 }
 
 void AFootballCharacter::EnhancedPass(const FInputActionValue& Value)
 {
-	if (bIsCharging && bHasBall && bTeamHasBall && bCanPass && !Cast<AFootballGameMode>(CurrentGameMode)->bCountDown)
+	if (bIsCharging)
 	{
-		if (ChargePercentage >= 1 || !Value.Get<bool>())
+		if ((ChargePercentage >= 1 || !Value.Get<bool>()) && bHasBall && bTeamHasBall && bCanPass && !GetMesh()->GetAnimInstance()->IsAnyMontagePlaying() && !Cast<AFootballGameMode>(CurrentGameMode)->bCountDown)
 		{
 			bIsCharging = false;
 			PlayAnimMontage(MontagePass, 1, EName::None);
@@ -270,20 +283,38 @@ void AFootballCharacter::EnhancedPass(const FInputActionValue& Value)
 	}
 	else
 	{
+		ChargePercentage = 0.0;
 		bIsCharging = false;
 	}
 }
 
 void AFootballCharacter::EnhancedCross(const FInputActionValue& Value)
 {
-	if (bIsCharging && bHasBall && bTeamHasBall && bCanPass && !Cast<AFootballGameMode>(CurrentGameMode)->bCountDown)
+	if (bIsCharging)
 	{
-		if (ChargePercentage >= 1 || !Value.Get<bool>())
+		if ((ChargePercentage >= 1 || !Value.Get<bool>()) && bHasBall && bTeamHasBall && bCanPass && !GetMesh()->GetAnimInstance()->IsAnyMontagePlaying() && !Cast<AFootballGameMode>(CurrentGameMode)->bCountDown)
 		{
 			bIsCharging = false;
 			FPredictProjectilePathParams _params;
 			
 			PlayAnimMontage(MontageCross, 1, EName::None);
+		}
+	}
+	else
+	{
+		ChargePercentage = 0.0;
+		bIsCharging = false;
+	}
+}
+
+void AFootballCharacter::EnhancedShot(const FInputActionValue& Value)
+{
+	if (bIsCharging)
+	{
+		if ((ChargePercentage >= 1 || !Value.Get<bool>()) && bHasBall && bTeamHasBall && bCanShoot && !GetMesh()->GetAnimInstance()->IsAnyMontagePlaying())
+		{
+			bIsCharging = false;
+			PlayAnimMontage(MontageShot, 1, EName::None);
 		}
 	}
 	else
@@ -310,21 +341,6 @@ void AFootballCharacter::EnhancedSwitch(const FInputActionValue& Value)
 	}
 }
 
-void AFootballCharacter::EnhancedShot(const FInputActionValue& Value)
-{
-	if (bIsCharging && bHasBall && bTeamHasBall && bCanShoot)
-	{
-		if (ChargePercentage >= 1 || !Value.Get<bool>())
-		{
-			bIsCharging = false;
-			PlayAnimMontage(MontageShot, 1, EName::None);
-		}
-	}
-	else
-	{
-		bIsCharging = false;
-	}
-}
 
 
 //Actions
@@ -642,8 +658,8 @@ void AFootballCharacter::CheckEvents()
 
 void AFootballCharacter::FindClosestPawn(bool isHome)
 {
-	const FVector TraceStart = GetActorLocation() + moveVector.GetSafeNormal() * (200 + ChargePercentage * (stats.Passing / 20.0 * 4000)); // Start the trace at a distance of 100 units from the player
-	const FVector BoxExtent = FVector(200 + ChargePercentage * (stats.Passing / 20.0 * 4000), 600 - (ChargePercentage * (20.0 / stats.Passing * 25.0)), 200);
+	const FVector TraceStart = GetActorLocation() + ((moveAxis.Length() > 0) ? moveVector.GetSafeNormal() : GetActorForwardVector()) * (200 + ChargePercentage * (stats.Passing / 20.0 * 12000));; // Start the trace at a distance of 100 units from the player
+	const FVector BoxExtent = FVector(200 + ChargePercentage * (stats.Passing / 20.0 * 12000), 600 + (ChargePercentage * (20.0 / stats.Passing * 500)), 200);;
 	
 
 	const TArray<TEnumAsByte<EObjectTypeQuery>> ObjectTypes = {
@@ -654,7 +670,7 @@ void AFootballCharacter::FindClosestPawn(bool isHome)
 	TArray<FHitResult> OutHits;
 
 	TArray<AActor*> _allPlayers;
-	UKismetSystemLibrary::BoxTraceMultiForObjects(GetWorld(), TraceStart, TraceStart, BoxExtent, GetActorRotation(),
+	UKismetSystemLibrary::BoxTraceMultiForObjects(GetWorld(), TraceStart, TraceStart, BoxExtent, UKismetMathLibrary::FindLookAtRotation(GetActorLocation(), (moveAxis.Length() > 0)? GetActorLocation() + moveVector : GetActorLocation() + GetActorForwardVector()),
 		ObjectTypes, false, ActorsToIgnore, EDrawDebugTrace::ForOneFrame,
 		OutHits, true);
 
