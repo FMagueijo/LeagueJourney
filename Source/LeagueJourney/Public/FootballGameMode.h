@@ -164,7 +164,11 @@ public:
 	void CreateThrowInEvent(AFootballCharacter* _whoGets, FVector _where = FVector::ZeroVector, FRotator _setRot = FRotator::ZeroRotator);
 
 	UFUNCTION(BlueprintCallable)
+	void CreateFreeKickEvent(AFootballCharacter* _whoGets);
+
+	UFUNCTION(BlueprintCallable)
 	void SetAllActions(bool _action);
+
 
 	//Animation
 

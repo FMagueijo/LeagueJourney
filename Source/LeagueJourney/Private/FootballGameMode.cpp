@@ -26,6 +26,14 @@ void AFootballGameMode::BeginPlay()
 	SpawnFootball();
 	SpawnCamera();
 
+	TArray<AActor*> outA;
+	UGameplayStatics::GetAllActorsOfClass(GetWorld(), AFootballCharacter::StaticClass(), outA);
+
+	for(AActor* ator : outA)
+	{
+		ator->Destroy();
+	}
+
 	if(UFootballMatchInstance * matchInstance = Cast<UFootballMatchInstance>(GetGameInstance()))
 	{
 		teamHome = matchInstance->H_Team;
@@ -34,6 +42,7 @@ void AFootballGameMode::BeginPlay()
 		if (matchInstance->H_SXI.Num() != 11 || matchInstance->A_SXI.Num() != 11)
 		{
 			SpawnDebugPlayers();
+			bSpecMode = false;
 		}
 		else
 		{
@@ -69,15 +78,16 @@ void AFootballGameMode::BeginPlay()
 	
 }
 
-
 void AFootballGameMode::CreateKickOffEvent(AFootballCharacter* whoStarts)
 {
 	if (whoStarts->bKickOff)
 	{
 		GEngine->AddOnScreenDebugMessage(-1, 10, FColor::Blue, "Kick OFF");
 		SetAllActions(true);
-		whoStarts->bKickOff = false;
+		whoStarts->bThrowIn = false;
+		whoStarts->bFreeKick = false;
 		whoStarts->bGoalKick = false;
+		whoStarts->bKickOff = false;
 		whoStarts->bCorner = false;
 		bMatchPaused = false;
 	}
@@ -106,9 +116,10 @@ void AFootballGameMode::CreateGoalKickEvent(AFootballCharacter* _whoGets)
 	if(_whoGets->bGoalKick)
 	{
 		SetAllActions(true);
-		_whoGets->bKickOff = false;
 		_whoGets->bThrowIn = false;
+		_whoGets->bFreeKick = false;
 		_whoGets->bGoalKick = false;
+		_whoGets->bKickOff = false;
 		_whoGets->bCorner = false;
 		bMatchPaused = false;
 	}
@@ -124,6 +135,7 @@ void AFootballGameMode::CreateGoalKickEvent(AFootballCharacter* _whoGets)
 		_whoGets->bCanPass = true;
 		_whoGets->bCanCharge = true;
 		_whoGets->bGoalKick = true;
+		_whoGets->bFreeKick = false;
 
 		
 		if (_whoGets->bPlaysAtHome && !bSpecMode)
@@ -139,7 +151,8 @@ void AFootballGameMode::CreateThrowInEvent(AFootballCharacter* _whoGets, FVector
 	{
 		SetAllActions(true);
 
-		_whoGets->bThrowIn = true;
+		_whoGets->bThrowIn = false;
+		_whoGets->bFreeKick = false;
 		_whoGets->bGoalKick = false;
 		_whoGets->bKickOff = false;
 		_whoGets->bCorner = false;
@@ -158,11 +171,68 @@ void AFootballGameMode::CreateThrowInEvent(AFootballCharacter* _whoGets, FVector
 		_whoGets->bGoalKick = false;
 		_whoGets->bKickOff = false;
 		_whoGets->bCorner = false;
+		_whoGets->bFreeKick = false;
 
 		_whoGets->bCanPass = true;
 		_whoGets->bCanCharge = true;
 
 		bMatchPaused = true;
+
+		if (_whoGets->bPlaysAtHome && !bSpecMode)
+		{
+			PC->Possess(_whoGets);
+		}
+	}
+}
+
+void AFootballGameMode::CreateFreeKickEvent(AFootballCharacter* _whoGets)
+{
+	if (_whoGets->bFreeKick)
+	{
+		SetAllActions(true);
+
+		_whoGets->bThrowIn = false;
+		_whoGets->bFreeKick = false;
+		_whoGets->bGoalKick = false;
+		_whoGets->bKickOff = false;
+		_whoGets->bCorner = false;
+
+		bMatchPaused = false;
+	}
+	else
+	{
+		SetAllActions(false);
+		_whoGets->SetActorRotation(FRotator((_whoGets->bPlaysAtHome) ? 0, 90, 0 : 0, -90, 0));
+		SpawnedFootball->Possess(_whoGets);
+
+
+		_whoGets->bThrowIn = false;
+		_whoGets->bFreeKick = true;
+		_whoGets->bGoalKick = false;
+		_whoGets->bKickOff = false;
+		_whoGets->bCorner = false;
+
+		_whoGets->bCanPass = true;
+		_whoGets->bCanShoot = true;
+		_whoGets->bCanCharge = true;
+
+		bMatchPaused = true;
+
+		TArray<AActor*> all;
+		UGameplayStatics::GetAllActorsOfClass(GetWorld(), AFootballCharacter::StaticClass(), all);
+		all.Remove(_whoGets);
+
+		for(AActor* actor : all)
+		{
+			if(AFootballCharacter* fool = Cast<AFootballCharacter>(actor))
+			{
+				if(FVector::Distance(fool->GetActorLocation(), _whoGets->GetActorLocation()) <= 700)
+				{
+					FVector dir = fool->GetActorLocation() - _whoGets->GetActorLocation();
+					fool->SetActorLocation(fool->GetActorLocation() + dir * 750);
+				}
+			}
+		}
 
 		if (_whoGets->bPlaysAtHome && !bSpecMode)
 		{
@@ -442,28 +512,36 @@ void AFootballGameMode::SetAllActions(bool _action)
 			if (UFootballMatchInstance* matchInstance = Cast<UFootballMatchInstance>(GetGameInstance()))
 			{
 				FFootballer _stats;
-				TArray<FVector> allPos;
-				matchInstance->AllHomePositions.GenerateValueArray(allPos);
-				if (!allPos.IsEmpty())
-				{
-					for (FVector _V : allPos)
-					{
+				_stats.Defending = 10;
+				_stats.Passing = 10;
+				_stats.Shooting = 10;
+				_stats.Pace = 10;
+				_stats.Goalkeeping = 10;
+				_stats.Stamina = 10;
+				_stats.Name = "John Doe";
+				_stats.Nation = "Portugal";
+				
 
-						FTransform transPositionHome;
-						transPositionHome.SetRotation(FQuat(FRotator(0, 270, 0)));
-						transPositionHome.SetLocation(_V);
-						AFootballCharacter* theNewchar = GetWorld()->SpawnActorDeferred<AFootballCharacter>(characterClass, transPositionHome);
-						theNewchar->CurrentPosition = _V;
-						theNewchar->stats = DefaultStats;
-						GEngine->AddOnScreenDebugMessage(-1, 150, FColor::Purple, SpawnedCamera->GetName());
-						theNewchar->SpawnedCamera = SpawnedCamera;
-						(animinstanceDefault) ? theNewchar->GetMesh()->SetAnimClass(animinstanceDefault) : nullptr;
-						theNewchar->FinishSpawning(transPositionHome, false);
-						pawnElevenHome.Add(theNewchar);
+				TArray<FString> HomeAllPos;
+				TArray<FString> AwayAllPos;
+				matchInstance->AllHomePositions.GenerateKeyArray(HomeAllPos);
+				matchInstance->AllHomePositions.GenerateKeyArray(AwayAllPos);
+
+				if(!HomeAllPos.IsEmpty() && !AwayAllPos.IsEmpty())
+				{
+					for(int i = 0; i < 11; i++)
+					{
+						_stats.CurrentPosition = HomeAllPos[i];
+						SpawnPawn(_stats, true);
+					}
+
+					for (int i = 0; i < 11; i++)
+					{
+						_stats.CurrentPosition = AwayAllPos[i];
+						SpawnPawn(_stats, false);
 					}
 				}
-				GEngine->AddOnScreenDebugMessage(-1, 5, FColor::Red, FString::FromInt(allPos.Num()));
-
+				
 			}
 		}
 	}

@@ -136,23 +136,22 @@ void AFootball::Shoot(float _distance, FVector _direction, float _force, float _
 
 
 	float DistanceFactor = _distance / (1000.0 + (90.0 * _force));
-	float speed = (3000.0 + (_charge * (_force / 20.0 * 3000.0)));
-	FVector ShootVector = _direction * speed;
+	float speed = (3000.0 + (_charge * (_force / 20.0 * 4000.0)));
+	FVector ShootVector = _direction.GetSafeNormal() * speed;
 
 
-	ShootVector.Z = FMath::Clamp(_charge * 1000.0 + FMath::FRandRange(0.0, 1000.0 * DistanceFactor), 0, 2000.0);
-	ShootVector.X += FMath::Clamp(FMath::FRandRange(DistanceFactor * -700, DistanceFactor * 700), -1300, 1300);
+	ShootVector.Z = _charge * 1200;
+	//ShootVector.X += FMath::Clamp(FMath::FRandRange(DistanceFactor * -700, DistanceFactor * 700), -1300, 1300);
 
 	FVector TossVelocity;
 	FCollisionResponseParams _par;
 	TArray<AActor*> _ignore = { this };
 
 	//DrawDebugSphere(GetWorld(), _direction, 50, 16, FColor::Green, false, 15, 0, 20);
-	UGameplayStatics::SuggestProjectileVelocity(GetWorld(), TossVelocity, GetActorLocation(), _direction, speed, false, 0, 0, ESuggestProjVelocityTraceOption::DoNotTrace, _par, _ignore, true);
+
 	
 
-	Com_Collision->SetPhysicsLinearVelocity(TossVelocity);
-
+	Com_Collision->SetPhysicsLinearVelocity(ShootVector);
 }
 
 void AFootball::Pass(AActor* _where, AActor* _from, float _force, float _charge) {

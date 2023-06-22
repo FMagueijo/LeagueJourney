@@ -200,6 +200,9 @@ public:
 	bool bThrowIn = false;
 
 	UPROPERTY(BlueprintReadWrite, Category = "Event Booleans")
+	bool bFreeKick = false;
+
+	UPROPERTY(BlueprintReadWrite, Category = "Event Booleans")
 	bool bCorner = false;
 
 	UPROPERTY(BlueprintReadWrite, Category = "Event Booleans")

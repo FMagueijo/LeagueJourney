@@ -24,7 +24,19 @@ protected:
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
-	
+
+
+	UPROPERTY()
+	float CurrentZoom;
+	UPROPERTY()
+	float CurrentFOV;
+	UPROPERTY()
+	FVector CurrentOffset;
+	UPROPERTY()
+	FVector CurrentLocation;
+	UPROPERTY()
+	FRotator CurrenRotation;
+
 #pragma region Components
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)

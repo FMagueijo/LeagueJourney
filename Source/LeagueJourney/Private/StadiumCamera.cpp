@@ -34,33 +34,81 @@ void AStadiumCamera::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	//CameraCurrentPosition = (PC->GetPawn()->GetActorLocation() + SpawnedFootball->GetActorLocation()) / 2;
-	/*CameraCurrentPosition = (PC->GetPawn() != nullptr) ? PC->GetPawn()->GetActorLocation() : FVector(0, 0, 0);
-	CameraCurrentPosition.Z = 0;
 	
-	FRotator CameraFinalRotation = UKismetMathLibrary::FindLookAtRotation(Com_Camera->GetComponentLocation(), CameraCurrentPosition);
-	Com_Camera->SetWorldRotation(CameraFinalRotation);
-
-	CameraCurrentPosition.Y = FMath::Clamp(CameraCurrentPosition.Y, minmaxYposition * -1, minmaxYposition);
-
-	this->SetActorLocation(CameraCurrentPosition);*/
-
 	if(const AFootball* _football = Cast<AFootball>(SpawnedFootball))
 	{
-		FVector MidPoint = (_football->bIsPosessed) ? _football->DaddyPawn->GetActorLocation() + _football->DaddyPawn->GetActorForwardVector() * 500 : _football->GetActorLocation() + _football->GetVelocity();
+		//First Location Test
+		FVector MidPoint = (_football->bIsPosessed) ? _football->DaddyPawn->GetActorLocation() + _football->DaddyPawn->GetVelocity() * 1.3 + _football->DaddyPawn->GetActorForwardVector() * 500 : _football->GetActorLocation() + _football->GetVelocity();
+		CurrentLocation = FMath::Lerp(GetActorLocation(), MidPoint, DeltaTime / 2);
+		MidPoint.Z = 0;
 		
-		MidPoint = FMath::Lerp(GetActorLocation(), MidPoint, DeltaTime / 2);
-
-		Com_Camera->SetWorldRotation(FMath::Lerp(Com_Camera->GetComponentRotation(), UKismetMathLibrary::FindLookAtRotation(Com_Camera->GetComponentLocation(), MidPoint), DeltaTime));
+		//First Rotation Test
+		CurrenRotation = FRotator(0, 180, 0);
 		
-		SetActorLocation(MidPoint);
+		//First Zoom Test
+		CurrentZoom = MaxZoom;
 
-		if(const AFootballCharacter* _char = Cast<AFootballCharacter>(_football->DaddyPawn))
+		//First Offset Test
+		CurrentOffset = FVector(0, 0, 1500);
+
+		//First FOV Test
+		CurrentFOV = 40;
+		
+
+		if (GetActorLocation().Y < -2500 || GetActorLocation().Y > 2500)
 		{
-			const float ArmLength = MaxZoom - ((MaxZoom-MinZoom) * _char->ChargePercentage);
-			Com_SpringArm->TargetArmLength = FMath::Lerp(Com_SpringArm->TargetArmLength, ArmLength, DeltaTime/2);
+			//Second Zoom Test
+			CurrentZoom = MinZoom;
+
+			//Second FOV Test
+			CurrentFOV = 70;
+			
 		}
+
+		if (AFootballCharacter* _char = Cast<AFootballCharacter>(_football->DaddyPawn))
+		{
+			if (!(_char->bFreeKick || _char->bGoalKick))
+			{
+				CurrentLocation.Y = FMath::Clamp(CurrentLocation.Y, -2500, 2500);
+			}
+		}
+
+		if (AFootballCharacter* _char = Cast<AFootballCharacter>(_football->DaddyPawn))
+		{
+			
+			//Third Zoom Test
+			CurrentZoom += (MaxZoom - MinZoom) * _char->ChargePercentage;
+			
+			
+
+			if (_char->bFreeKick || _char->bGoalKick)
+			{
+
+				//Second Rotation Test
+				CurrenRotation = FRotator(0, (_char->bPlaysAtHome) ? -90 : 90, 0);
+
+				//Third Zoom Test
+				CurrentZoom = 1000;
+
+				//Third Offset Test
+				CurrentOffset = FVector(0, 0, 250);
+
+				//Third FOV Test
+				CurrentFOV = 90;
+			}
+		}
+		
+		SetActorLocation(CurrentLocation);
+		SetActorRotation(CurrenRotation);
+		Com_SpringArm->TargetArmLength = FMath::Lerp(Com_SpringArm->TargetArmLength, CurrentZoom, DeltaTime * 2);
+		Com_SpringArm->TargetOffset = CurrentOffset;
+		Com_Camera->FieldOfView = FMath::Lerp(Com_Camera->FieldOfView, CurrentFOV, DeltaTime * 2);
+
+		//Camera Rotate Towards Current Location
+		Com_Camera->SetWorldRotation(FMath::Lerp(Com_Camera->GetComponentRotation(), UKismetMathLibrary::FindLookAtRotation(Com_Camera->GetComponentLocation(), MidPoint), DeltaTime * 5));
+
 	}
+
 }
 
 bool AStadiumCamera::isOnScreen(AActor* WhichActor)
