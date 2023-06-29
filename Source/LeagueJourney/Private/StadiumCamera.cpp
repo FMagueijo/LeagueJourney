@@ -38,8 +38,8 @@ void AStadiumCamera::Tick(float DeltaTime)
 	if(const AFootball* _football = Cast<AFootball>(SpawnedFootball))
 	{
 		//First Location Test
-		FVector MidPoint = (_football->bIsPosessed) ? _football->DaddyPawn->GetActorLocation() + _football->DaddyPawn->GetVelocity() * 1.3 + _football->DaddyPawn->GetActorForwardVector() * 500 : _football->GetActorLocation() + _football->GetVelocity();
-		CurrentLocation = FMath::Lerp(GetActorLocation(), MidPoint, DeltaTime / 2);
+		FVector MidPoint =( _football->GetActorLocation() + ((_football->bIsPosessed) ? _football->DaddyPawn->GetActorLocation() : FVector::Zero()) ) / ( (_football->bIsPosessed) ? 2 : 1);
+		//CurrentLocation = FMath::Lerp(GetActorLocation(), MidPoint, DeltaTime / 2);
 		MidPoint.Z = 0;
 		
 		//First Rotation Test
@@ -52,57 +52,39 @@ void AStadiumCamera::Tick(float DeltaTime)
 		CurrentOffset = FVector(0, 0, 1500);
 
 		//First FOV Test
-		CurrentFOV = 40;
+		CurrentFOV = 75;
 		
+		float rate = FMath::Abs(MidPoint.Y) / 5500.0;
 
-		if (GetActorLocation().Y < -2500 || GetActorLocation().Y > 2500)
-		{
-			//Second Zoom Test
-			CurrentZoom = MinZoom;
+		CurrentLocation = FVector(0, 0, 0);
+		CurrenRotation = FRotator(0, -180, 0);
+		CurrentZoom = 3500;
+		CurrentFOV = 70 - 60 * rate;
+		CurrentOffset = FVector(0, 0, 1500);
 
-			//Second FOV Test
-			CurrentFOV = 70;
-			
-		}
 
 		if (AFootballCharacter* _char = Cast<AFootballCharacter>(_football->DaddyPawn))
 		{
-			if (!(_char->bFreeKick || _char->bGoalKick))
+			if ((_char->bFreeKick || _char->bGoalKick))
 			{
-				CurrentLocation.Y = FMath::Clamp(CurrentLocation.Y, -2500, 2500);
-			}
-		}
-
-		if (AFootballCharacter* _char = Cast<AFootballCharacter>(_football->DaddyPawn))
-		{
-			
-			//Third Zoom Test
-			CurrentZoom += (MaxZoom - MinZoom) * _char->ChargePercentage;
-			
-			
-
-			if (_char->bFreeKick || _char->bGoalKick)
-			{
-
-				//Second Rotation Test
-				CurrenRotation = FRotator(0, (_char->bPlaysAtHome) ? -90 : 90, 0);
-
-				//Third Zoom Test
-				CurrentZoom = 1000;
-
-				//Third Offset Test
-				CurrentOffset = FVector(0, 0, 250);
-
-				//Third FOV Test
-				CurrentFOV = 90;
+				CurrentFOV = 70;
+				CurrentZoom = 750;
+				CurrentLocation = MidPoint;
+				CurrenRotation = _char->GetActorRotation();
+				if(_char->moveVector.Length() >= .1)
+				{
+					CurrenRotation = UKismetMathLibrary::FindLookAtRotation(_char->GetActorLocation(), _char->GetActorLocation() + _char->moveVector);
+				}
+				
+				CurrentOffset = FVector(0, 0, (_char->bFreeKick)? 200 : 350);
 			}
 		}
 		
-		SetActorLocation(CurrentLocation);
-		SetActorRotation(CurrenRotation);
+		SetActorLocation(FMath::Lerp(GetActorLocation(), CurrentLocation, DeltaTime));
+		SetActorRotation(FMath::Lerp(GetActorRotation(), CurrenRotation, DeltaTime));
 		Com_SpringArm->TargetArmLength = FMath::Lerp(Com_SpringArm->TargetArmLength, CurrentZoom, DeltaTime * 2);
 		Com_SpringArm->TargetOffset = CurrentOffset;
-		Com_Camera->FieldOfView = FMath::Lerp(Com_Camera->FieldOfView, CurrentFOV, DeltaTime * 2);
+		Com_Camera->FieldOfView = FMath::Lerp(Com_Camera->FieldOfView, CurrentFOV, DeltaTime);
 
 		//Camera Rotate Towards Current Location
 		Com_Camera->SetWorldRotation(FMath::Lerp(Com_Camera->GetComponentRotation(), UKismetMathLibrary::FindLookAtRotation(Com_Camera->GetComponentLocation(), MidPoint), DeltaTime * 5));

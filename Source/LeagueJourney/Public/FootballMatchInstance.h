@@ -81,7 +81,6 @@ struct FDivision
 
 };
 
-
 USTRUCT(BlueprintType)
 struct FCountry
 {
@@ -92,6 +91,86 @@ struct FCountry
 
 	UPROPERTY(BlueprintReadWrite)
 	TArray<FDivision> Divisions;
+};
+
+
+
+//League shit
+
+USTRUCT(BlueprintType)
+struct FLeagueTeam
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY(BlueprintReadWrite)
+	int id;
+
+	UPROPERTY(BlueprintReadWrite)
+	FTeam Team;
+
+	UPROPERTY(BlueprintReadWrite)
+	int points;
+
+	UPROPERTY(BlueprintReadWrite)
+	FVector WDL;
+
+
+	UPROPERTY(BlueprintReadWrite)
+	int ga;
+
+	bool playerOwned = false;
+};
+
+USTRUCT(BlueprintType)
+struct FLeagueMatch
+{
+	GENERATED_USTRUCT_BODY()
+
+
+	UPROPERTY(BlueprintReadWrite)
+	FLeagueTeam Home;
+
+	UPROPERTY(BlueprintReadWrite)
+	bool Finished = false;
+	
+	UPROPERTY(BlueprintReadWrite)
+	FLeagueTeam Away;
+
+	UPROPERTY(BlueprintReadWrite)
+	FVector2D Score;
+	
+};
+
+USTRUCT(BlueprintType)
+struct FLeagueMatchday
+{
+	GENERATED_USTRUCT_BODY()
+	
+	UPROPERTY(BlueprintReadWrite)
+	TArray<FLeagueMatch> matches;
+};
+
+USTRUCT(BlueprintType)
+struct FLeague
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY(BlueprintReadWrite)
+	TArray<FLeagueTeam> table;
+
+	UPROPERTY(BlueprintReadWrite)
+	TArray<FLeagueMatchday> matchdays;
+
+	UPROPERTY(BlueprintReadWrite)
+	FLeagueTeam PlayerTeam;
+
+	UPROPERTY(BlueprintReadWrite)
+	int currentMatchday;
+	
+	void generateMatchdays();
+	
+	void AdvanceMatchDay();
+	
 };
 
 
@@ -156,12 +235,19 @@ public:
 	UPROPERTY(BlueprintReadWrite)
 	TArray<FCountry> FootballDatabase;
 	
-	
 	UFUNCTION(BlueprintCallable)
 	void LoadFirstDB();
-	
-
 
 	UTexture2D* URLToTexture(FString File);
 
+
+
+	UPROPERTY(BlueprintReadWrite)
+	FLeague CurrentLeague;
+
+	UFUNCTION(BlueprintCallable)
+	void generateMatchdays(int numTeams, int numMax, int numMin);
+
+	UFUNCTION(BlueprintCallable)
+	void AdvanceMatchDay();
 };
