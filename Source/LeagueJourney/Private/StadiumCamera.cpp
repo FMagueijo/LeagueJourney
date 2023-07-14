@@ -38,7 +38,10 @@ void AStadiumCamera::Tick(float DeltaTime)
 	if(const AFootball* _football = Cast<AFootball>(SpawnedFootball))
 	{
 		//First Location Test
-		FVector MidPoint =( _football->GetActorLocation() + ((_football->bIsPosessed) ? _football->DaddyPawn->GetActorLocation() : FVector::Zero()) ) / ( (_football->bIsPosessed) ? 2 : 1);
+		FVector MidPoint =( _football->GetActorLocation() + ((_football->bIsPosessed) ? 
+			_football->DaddyPawn->GetActorLocation() : 
+			FVector::Zero()) ) / ( (_football->bIsPosessed) ? 2 : 1);
+
 		//CurrentLocation = FMath::Lerp(GetActorLocation(), MidPoint, DeltaTime / 2);
 		MidPoint.Z = 0;
 		
@@ -87,7 +90,9 @@ void AStadiumCamera::Tick(float DeltaTime)
 		Com_Camera->FieldOfView = FMath::Lerp(Com_Camera->FieldOfView, CurrentFOV, DeltaTime);
 
 		//Camera Rotate Towards Current Location
-		Com_Camera->SetWorldRotation(FMath::Lerp(Com_Camera->GetComponentRotation(), UKismetMathLibrary::FindLookAtRotation(Com_Camera->GetComponentLocation(), MidPoint), DeltaTime * 5));
+		Com_Camera->SetWorldRotation(FMath::Lerp(Com_Camera->GetComponentRotation(), 
+			UKismetMathLibrary::FindLookAtRotation(Com_Camera->GetComponentLocation(), 
+				MidPoint), DeltaTime * 5));
 
 	}
 

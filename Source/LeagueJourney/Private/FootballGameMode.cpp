@@ -21,7 +21,7 @@ void AFootballGameMode::BeginPlay()
 	bSpecMode = Cast<UFootballMatchInstance>(GetGameInstance())->bSpectate;
 	Rate = Cast<UFootballMatchInstance>(GetGameInstance())->MatchRate;
 	Difficulty = Cast<UFootballMatchInstance>(GetGameInstance())->Difficulty;
-	
+	bLeagueMode = Cast<UFootballMatchInstance>(GetGameInstance())->bLeaguePlay;
 
 	SpawnFootball();
 	SpawnCamera();
@@ -229,7 +229,7 @@ void AFootballGameMode::CreateFreeKickEvent(AFootballCharacter* _whoGets)
 				if(FVector::Distance(fool->GetActorLocation(), _whoGets->GetActorLocation()) <= 700)
 				{
 					FVector dir = fool->GetActorLocation() - _whoGets->GetActorLocation();
-					fool->SetActorLocation(fool->GetActorLocation() + dir * 750);
+					fool->SetActorLocation(fool->GetActorLocation() + dir * 250);
 				}
 			}
 		}

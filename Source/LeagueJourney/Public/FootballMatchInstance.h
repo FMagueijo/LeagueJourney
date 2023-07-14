@@ -216,6 +216,8 @@ public:
 	UPROPERTY(BlueprintReadWrite)
 	bool bSpectate = false;
 
+	UPROPERTY(BlueprintReadWrite)
+	bool bLeaguePlay = false;
 
 	UPROPERTY(BlueprintReadWrite)
 	FString LevelToLoad = "StadiumMCB";

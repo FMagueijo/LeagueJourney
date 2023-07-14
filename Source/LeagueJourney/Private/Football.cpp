@@ -69,15 +69,11 @@ void AFootball::FollowDaddy(){
 }
 
 void AFootball::Possess(APawn* _parent) {
-
 	UnPossess();
-
 	DaddyPawn = _parent;
 	bIsPosessed = true;
 	Com_Collision->SetSimulatePhysics(false);
-
 	Cast<AFootballCharacter>(DaddyPawn)->bHasBall = true;
-
 	if(Cast<AFootballCharacter>(DaddyPawn)->bPlaysAtHome)
 	{
 
@@ -94,7 +90,6 @@ void AFootball::Possess(APawn* _parent) {
 void AFootball::UnPossess(){
 	if(bIsPosessed)
 	{
-
 		Cast<AFootballCharacter>(DaddyPawn)->bHasBall = false;
 		Cast<AFootballCharacter>(DaddyPawn)->ChargePercentage = 0;
 		Cast<AFootballCharacter>(DaddyPawn)->PlayerToPassTo = nullptr;

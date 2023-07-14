@@ -134,7 +134,7 @@ void AFootballCharacter::Tick(float DeltaTime)
 		}
 		//Ball Detection Check
 
-		bWantsBall = (FVector::Distance(KnownBall->GetActorLocation(), GetActorLocation()) <= (500 + coverageDistance * ((!bTeamHasBall) ? 1 : 0)));
+		bWantsBall = (FVector2D::Distance(FVector2D(KnownBall->GetActorLocation()), FVector2D(GetActorLocation())) <= (500 + coverageDistance * ((!bTeamHasBall) ? 1 : 0)));
 		
 
 		if(PC->GetPawn() == this && !bHasBall && FVector2D::Distance(FVector2D(KnownBall->GetActorLocation()), FVector2D(GetActorLocation())) <= 300)
@@ -217,8 +217,7 @@ void AFootballCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputC
 		enhancedInputComponent->BindAction(PassAction, ETriggerEvent::Triggered, this, &AFootballCharacter::EnhancedPass);
 
 		enhancedInputComponent->BindAction(CrossAction, ETriggerEvent::Triggered, this, &AFootballCharacter::EnhancedCross);
-
-		enhancedInputComponent->BindAction(TackleAction, ETriggerEvent::Triggered, this, &AFootballCharacter::EnhancedTackle);
+		
 	}
 }
 
@@ -258,21 +257,11 @@ void AFootballCharacter::EnhancedMove(const FInputActionValue& Value)
 
 void AFootballCharacter::EnhancedTackle(const FInputActionValue& Value)
 {
-	if (bIsCharging && !bKickOff && !bGoalKick)
+	if (bCanTackle && (!bTeamHasBall) && !GetMesh()->GetAnimInstance()->IsAnyMontagePlaying())
 	{
-		if ((ChargePercentage >= 1 || !Value.Get<bool>()) && !bTeamHasBall && bCanTackle && !GetMesh()->GetAnimInstance()->IsAnyMontagePlaying())
-		{
-			bIsCharging = false;
-			PlayAnimMontage(MontageTackle, 1, EName::None);
-		}
-	}
-	else
-	{
-		if (!GetMesh()->GetAnimInstance()->IsAnyMontagePlaying())
-		{
-			ChargePercentage = 0.0;
-			bIsCharging = false;
-		}
+		PlayAnimMontage(MontageTackle, 1, EName::None);
+		ChargePercentage = 0.0;
+		bIsCharging = false;
 	}
 
 }
@@ -394,6 +383,11 @@ void AFootballCharacter::Shoot()
 			Cast<AFootball>(KnownBall)->Shoot(_distance, GetActorForwardVector(), stats.Shooting, ChargePercentage);
 		}
 
+		if(AFootballGameMode* gamemode = Cast<AFootballGameMode>(CurrentGameMode))
+		{
+			(bPlaysAtHome) ? gamemode->HShots += 1 : gamemode->AShots += 1;
+		}
+
 		CheckEvents();
 	}
 }
@@ -463,7 +457,13 @@ void AFootballCharacter::Pass()
 			SetActorRotation(_newRot);
 
 			Cast<AFootball>(KnownBall)->Pass(PlayerToPassTo, this, stats.Passing, ChargePercentage);
-			
+
+
+			if (AFootballGameMode* gamemode = Cast<AFootballGameMode>(CurrentGameMode))
+			{
+				(bPlaysAtHome) ? gamemode->HPass += 1 : gamemode->APass += 1;
+			}
+
 			CheckEvents();
 		}
 		
@@ -563,7 +563,7 @@ void AFootballCharacter::Tackle()
 			if(_char->bPlaysAtHome != bPlaysAtHome && _fallChance <= .5 + stats.Defending * 0.025)
 			{
 				//Card
-				if(_foulChance <= 3 - stats.Defending * 0.025 || KnownBall->DaddyPawn != _char)
+				if(_foulChance <= .8 - stats.Defending * 0.025 || KnownBall->DaddyPawn != _char)
 				{
 					AddCard();
 					//create event
@@ -583,6 +583,11 @@ void AFootballCharacter::Tackle()
 				_char->GetTackled();
 
 			}
+
+			if (AFootballGameMode* gamemode = Cast<AFootballGameMode>(CurrentGameMode))
+			{
+				(bPlaysAtHome) ? gamemode->HTackles += 1 : gamemode->ATackles += 1;
+			}
 		}
 	}
 
@@ -592,7 +597,10 @@ void AFootballCharacter::Tackle()
 void AFootballCharacter::AddCard()
 {
 	cardNumber++;
-
+	if(AFootballGameMode* gamemode = Cast<AFootballGameMode>(CurrentGameMode))
+	{
+		(bPlaysAtHome) ? gamemode->HYellow += 1 : gamemode->AYellow += 1;
+	}
 	if (cardNumber == 2)
 	{
 		float x = 0;
@@ -606,6 +614,11 @@ void AFootballCharacter::AddCard()
 		(bPlaysAtHome) ? Cast<AFootballGameMode>(CurrentGameMode)->pawnElevenHome.Remove(this) : Cast<AFootballGameMode>(CurrentGameMode)->pawnElevenAway.Remove(this);
 
 		(bPlaysAtHome) ? PC->Possess(Cast<APawn>(closeA)) : NULL;
+
+		if (AFootballGameMode* gamemode = Cast<AFootballGameMode>(CurrentGameMode))
+		{
+			(bPlaysAtHome) ? gamemode->HRed += 1 : gamemode->ARed += 1;
+		}
 
 		//create event
 

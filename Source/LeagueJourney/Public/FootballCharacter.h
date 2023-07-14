@@ -166,7 +166,7 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category = "Input Properties")
 	float ChargePercentage = 0.f;
 
-	UPROPERTY(BlueprintReadOnly, Category = "Input Properties")
+	UPROPERTY(BlueprintReadWrite, Category = "Input Properties")
 	AActor* PlayerToPassTo;
 
 

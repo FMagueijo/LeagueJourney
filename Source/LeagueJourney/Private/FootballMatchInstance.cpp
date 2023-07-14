@@ -111,7 +111,6 @@ UFootballMatchInstance::UFootballMatchInstance()
 
  void FLeague::AdvanceMatchDay()
  {
-	
 	 // Check if there are more matchdays left
 	 if (currentMatchday >= matchdays.Num())
 	 {
@@ -267,23 +266,26 @@ UTexture2D* UFootballMatchInstance::URLToTexture(FString File)
 		int randomIndexTeam = FMath::RandRange(0, CurrentDivison.Teams.Num() - 1);
 
 		FLeagueTeam CurrentTeam;
+		if(CurrentDivison.Teams.IsValidIndex(randomIndexTeam))
+		{
+			CurrentTeam.Team = CurrentDivison.Teams[randomIndexTeam];
 
-		CurrentTeam.Team = CurrentDivison.Teams[randomIndexTeam];
+			CurrentTeam.ga = 0;
+			CurrentTeam.id = i;
+			CurrentTeam.points = 0;
+			CurrentLeague.table.Add(CurrentTeam);
 
-		CurrentTeam.ga = 0;
-		CurrentTeam.id = i;
-		CurrentTeam.points = 0;
-		CurrentLeague.table.Add(CurrentTeam);
+			CurrentDivison.Teams.RemoveAt(randomIndexTeam);
+		}
+	}
 
-		CurrentDivison.Teams.RemoveAt(randomIndexTeam);
-
+	if(CurrentLeague.table.Num() % 2 != 0)
+	{
+		CurrentLeague.table.RemoveAt(0);
 	}
 
 	CurrentLeague.PlayerTeam = CurrentLeague.table[FMath::RandRange(0, CurrentLeague.table.Num() - 1)];
 	CurrentLeague.PlayerTeam.playerOwned = true;
-
-	
-
 	CurrentLeague.generateMatchdays();
  }
 
@@ -299,7 +301,6 @@ UTexture2D* UFootballMatchInstance::URLToTexture(FString File)
 
 		 return TeamA.points > TeamB.points; // Sort by points in descending order
 		 });
-
 
  }
 

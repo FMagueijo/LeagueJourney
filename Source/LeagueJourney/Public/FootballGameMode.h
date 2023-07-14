@@ -118,6 +118,40 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category = "Match Properties")
 	float PerAwayPoss = 0;
 
+
+
+
+	UPROPERTY(BlueprintReadOnly, Category = "Match Properties")
+	float HShots = 0;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Match Properties")
+	float AShots = 0;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Match Properties")
+	float HPass = 0;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Match Properties")
+	float APass = 0;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Match Properties")
+	float HTackles = 0;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Match Properties")
+	float ATackles = 0;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Match Properties")
+	int HYellow = 0;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Match Properties")
+	int AYellow = 0;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Match Properties")
+	int HRed = 0;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Match Properties")
+	int ARed = 0;
+
+
 	UPROPERTY(BlueprintReadWrite, Category = "Match Properties")
 	int Minutes = 0;
 
@@ -205,6 +239,9 @@ public:
 
 	UPROPERTY(EditAnywhere, Category = "Boolean Overrides")
 	bool bSpecMode = false;
+
+	UPROPERTY(BlueprintReadWrite, Category = "Boolean Overrides")
+	bool bLeagueMode = false;
 
 	UFUNCTION()
 	void SpawnDebugPlayers();
